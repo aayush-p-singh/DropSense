@@ -172,3 +172,22 @@ canvas {
         opacity: 1;
     }
 }
+.progress-container {
+    width: 300px;
+    margin: 20px auto;
+    text-align: left;
+}
+
+.progress-bar {
+    background: #1e293b;
+    border-radius: 10px;
+    overflow: hidden;
+    height: 10px;
+}
+
+#progress {
+    height: 100%;
+    background: #3b82f6;
+    width: 0%;
+    transition: 0.4s;
+}
