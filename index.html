@@ -5,21 +5,53 @@
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
+
 <body>
 
-    <h1>💧 DropSense Dashboard</h1>
+    <div class="container">
 
-    <div class="card">
-        <h2>Water Usage</h2>
-        <h1><span id="usage">100</span> L</h1>
+        <!-- Title -->
+        <h1>💧 DropSense Dashboard</h1>
 
-        <div id="alert"></div>
+        <!-- Dashboard Cards -->
+        <div class="dashboard">
 
-        <button onclick="addUsage()">Add New Usage</button>
+            <div class="card">
+                <h3>Current Usage</h3>
+                <h1 id="usage">100 <span>L</span></h1>
+            </div>
+
+            <div class="card">
+                <h3>Average Usage</h3>
+                <h1 id="average">100 <span>L</span></h1>
+            </div>
+
+            <div class="card status-card">
+                <h3>Status</h3>
+                <h2 id="alert" class="normal">Normal ✅</h2>
+            </div>
+
+        </div>
+
+        <!-- Controls (CENTERED + CLEAN) -->
+        <div class="controls">
+
+            <button onclick="addUsage()">➕ Simulate Usage</button>
+
+            <div class="input-group">
+                <input type="number" id="manualInput" placeholder="Enter usage (L)">
+                <button onclick="addManual()">Add Manual</button>
+            </div>
+
+        </div>
+
+        <!-- Chart -->
+        <div class="chart-card">
+            <h3>Usage Trend</h3>
+            <canvas id="myChart"></canvas>
+        </div>
+
     </div>
-
-    <h3>Usage Trend</h3>
-    <canvas id="myChart" width="300" height="200"></canvas>
 
     <script src="script.js"></script>
 
