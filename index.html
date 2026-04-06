@@ -32,9 +32,16 @@
             </div>
 
         </div>
+        <div class="progress-container">
+    <p>Daily Usage Limit</p>
+    <div class="progress-bar">
+        <div id="progress"></div>
+    </div>
+</div>
 
         <!-- Controls (CENTERED + CLEAN) -->
         <div class="controls">
+            <button onclick="predictNext()">📊 Predict Next</button>
 
             <button onclick="addUsage()">➕ Simulate Usage</button>
 
@@ -50,6 +57,9 @@
             <h3>Usage Trend</h3>
             <canvas id="myChart"></canvas>
         </div>
+        <p style="color:#94a3b8; font-size:0.9rem;">
+    Simulated sensor data (IoT-ready)
+</p>
 
     </div>
 
