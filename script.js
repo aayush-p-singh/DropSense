@@ -102,6 +102,8 @@ function updateUI() {
         alertBox.innerText = "Normal ✅";
         alertBox.className = "normal";
     }
+    let percent = Math.min((current / DAILY_LIMIT) * 100, 100);
+document.getElementById("progress").style.width = percent + "%";
 }
 
 /* 📊 Helpers */
@@ -149,4 +151,12 @@ function showToast(message) {
     setTimeout(() => {
         toast.remove();
     }, 3000);
+}
+function predictNext() {
+    let avg = getAverage(usageData);
+    let last = usageData[usageData.length - 1];
+
+    let prediction = Math.round((avg + last) / 2);
+
+    showToast("📊 Predicted Next Usage: " + prediction + " L");
 }
