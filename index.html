@@ -1,23 +1,27 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Drop-sense</title>
+    <title>DropSense</title>
     <link rel="stylesheet" href="style.css">
-    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
+
     <h1>💧 DropSense Dashboard</h1>
+
+    <div class="card">
+        <h2>Water Usage</h2>
+        <h1><span id="usage">100</span> L</h1>
+
+        <div id="alert"></div>
+
+        <button onclick="addUsage()">Add New Usage</button>
+    </div>
+
+    <h3>Usage Trend</h3>
+    <canvas id="myChart" width="300" height="200"></canvas>
 
     <script src="script.js"></script>
 
-    <div class="card">
-    <h2>Water Usage</h2>
-    <h1><span id="usage">100</span> L</h1>
-    <div id="alert"></div>
-    <button onclick="addUsage()">Add New Usage</button>
-    
-</div>
 </body>
 </html>
