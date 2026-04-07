@@ -1,162 +1,186 @@
-let usageData = JSON.parse(localStorage.getItem("waterData")) || [90, 100, 110];
+// ===== SHARED DATA =====
+let readings = JSON.parse(localStorage.getItem("waterData")) || [90,100,110];
 let chart;
 let DAILY_LIMIT = 150;
 
-window.onload = function () {
-    let ctx = document.getElementById("myChart").getContext("2d");
+// ===== TAB SWITCH =====
+function showTab(id, btn){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
 
-    chart = new Chart(ctx, {
-        type: "line",
-        data: {
-            labels: usageData.map((_, i) => i + 1),
-            datasets: [{
-                label: "Water Usage",
-                data: usageData,
-                borderColor: "#38bdf8",
-                backgroundColor: "rgba(56,189,248,0.2)",
-                tension: 0.4,
-                fill: true
-            }]
-        },
-        options: {
-            plugins: {
-                legend: {
-                    labels: { color: "white" }
-                }
-            },
-            scales: {
-                x: { ticks: { color: "white" } },
-                y: { ticks: { color: "white" } }
-            }
-        }
-    });
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
 
-    updateUI();
+  if(id==="advisory") refreshAdvisory();
+}
+
+// ===== CHART INIT =====
+window.onload = () => {
+  const ctx = document.getElementById("myChart");
+
+  chart = new Chart(ctx,{
+    type:"line",
+    data:{
+      labels: readings.map((_,i)=>i+1),
+      datasets:[{
+        label:"Usage",
+        data:readings,
+        borderColor:"#38bdf8"
+      }]
+    }
+  });
+
+  updateUI();
 };
 
-/* 🔥 Simulated Data */
-function addUsage() {
-    let newUsage;
-
-    if (Math.random() > 0.7) {
-        newUsage = 200; // spike
-    } else {
-        newUsage = Math.floor(Math.random() * 40) + 80;
-    }
-
-    addData(newUsage);
+// ===== DATA FUNCTIONS =====
+function addUsage(){
+  let val = Math.random()>0.7 ? 200 : Math.floor(Math.random()*40)+80;
+  addData(val);
 }
 
-/* ✍️ Manual Input */
-function addManual() {
-    let input = document.getElementById("manualInput").value;
+function addManual(){
+  let val = document.getElementById("manualInput").value;
+  if(!val) return;
 
-    if (input === "" || input <= 0) return;
-
-    addData(Number(input));
-    document.getElementById("manualInput").value = "";
+  addData(Number(val));
 }
 
-/* 📊 Add Data + Save */
-function addData(value) {
-    usageData.push(value);
+function addData(val){
+  readings.push(val);
+  localStorage.setItem("waterData",JSON.stringify(readings));
 
-    localStorage.setItem("waterData", JSON.stringify(usageData));
+  document.getElementById("usage").innerText = val;
 
-    animateValue("usage", value);
-
-    updateChart();
-    updateUI();
+  updateChart();
+  updateUI();
+  refreshAdvisory();
 }
 
-/* 📈 Update Chart */
-function updateChart() {
-    chart.data.labels = usageData.map((_, i) => i + 1);
-    chart.data.datasets[0].data = usageData;
-    chart.update();
+function updateChart(){
+  chart.data.labels = readings.map((_,i)=>i+1);
+  chart.data.datasets[0].data = readings;
+  chart.update();
 }
 
-/* 🧠 Smart Detection */
-function updateUI() {
-    if (usageData.length < 2) return;
+// ===== UI =====
+function updateUI(){
+  let avg = readings.reduce((a,b)=>a+b)/readings.length;
+  let current = readings[readings.length-1];
 
-    let avg = getAverage(usageData);
-    let stdDev = getStdDev(usageData);
-    let current = usageData[usageData.length - 1];
+  document.getElementById("average").innerText = Math.round(avg);
 
-    animateValue("average", Math.round(avg));
+  let alert = document.getElementById("alert");
 
-    let alertBox = document.getElementById("alert");
+  if(current > avg*1.5){
+    alert.innerText="Leakage 🚨";
+    alert.className = "leak";
+  }else{
+    alert.innerText="Normal ✅";
+    alert.className = "normal";
+  }
 
-    if (current > avg + 2 * stdDev) {
-        alertBox.innerText = "Leakage Detected 🚨";
-        alertBox.className = "leak";
-        showToast("🚨 Leakage Detected!");
-    } 
-    else if (current > DAILY_LIMIT) {
-        alertBox.innerText = "Limit Exceeded ⚠️";
-        alertBox.className = "leak";
-        showToast("⚠️ Daily Limit Exceeded!");
-    } 
-    else {
-        alertBox.innerText = "Normal ✅";
-        alertBox.className = "normal";
-    }
-    let percent = Math.min((current / DAILY_LIMIT) * 100, 100);
-document.getElementById("progress").style.width = percent + "%";
+  let percent = Math.min((current/DAILY_LIMIT)*100,100);
+  document.getElementById("progress").style.width = percent+"%";
 }
 
-/* 📊 Helpers */
-function getAverage(data) {
-    return data.reduce((a, b) => a + b) / data.length;
+// ===== PREDICTION =====
+function predictNext(){
+  let avg = readings.reduce((a,b)=>a+b)/readings.length;
+  let last = readings[readings.length-1];
+  alert("Prediction: "+Math.round((avg+last)/2)+"L");
 }
 
-function getStdDev(data) {
-    let avg = getAverage(data);
-    let variance = data.reduce((sum, val) => sum + Math.pow(val - avg, 2), 0) / data.length;
-    return Math.sqrt(variance);
+// ===== ADVISORY =====
+function refreshAdvisory(){
+  let avg = readings.reduce((a,b)=>a+b)/readings.length;
+
+  document.getElementById("adv-summary").innerText =
+    "Average: "+Math.round(avg)+"L";
+
+  document.getElementById("adv-score").innerText =
+    avg < 120 ? "Good 👍" : "Reduce usage ⚠️";
 }
 
-/* 🔢 Animated Numbers */
-function animateValue(id, end) {
-    let element = document.getElementById(id);
-    let start = Number(element.innerText) || 0;
-    let duration = 500;
-    let startTime = null;
+// ===== CHAT =====
+async function sendChat(){
+  let inp = document.getElementById("chat-input");
+  let msg = inp.value.trim();
+  if(!msg) return;
 
-    function step(timestamp) {
-        if (!startTime) startTime = timestamp;
-        let progress = timestamp - startTime;
-        let value = Math.floor(start + (end - start) * (progress / duration));
-        element.innerText = value;
+  let box = document.getElementById("chat-msgs");
 
-        if (progress < duration) {
-            requestAnimationFrame(step);
-        } else {
-            element.innerText = end;
-        }
-    }
+  box.innerHTML += "<div><strong>You:</strong> "+msg+"</div>";
+  inp.value = "";
 
-    requestAnimationFrame(step);
+  box.innerHTML += "<div><em>AI: Thinking...</em></div>";
+
+  // NOTE: API key has been removed for security reasons.
+  // In production, this should be handled server-side or use environment variables.
+  // For demo purposes, we'll simulate a response.
+  setTimeout(() => {
+    let responses = [
+      "Great question! To save water, try fixing leaky faucets and taking shorter showers.",
+      "Remember to turn off the tap while brushing your teeth. It can save up to 8 liters per minute!",
+      "Water conservation is key. Consider installing low-flow fixtures in your home.",
+      "Check for leaks regularly. A dripping faucet can waste 20 liters per day.",
+      "Use a bucket to collect water while showering to water plants later."
+    ];
+    let reply = responses[Math.floor(Math.random() * responses.length)];
+    box.innerHTML = box.innerHTML.replace("<div><em>AI: Thinking...</em></div>", "<div><strong>AI:</strong> "+reply+"</div>");
+    box.scrollTop = box.scrollHeight;
+  }, 1000);
+
+  /*
+  // Original API call (commented out for security)
+  try{
+    const res = await fetch("https://api.x.ai/v1/responses", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer YOUR_API_KEY_HERE" // Replace with secure key
+      },
+      body: JSON.stringify({
+        model: "grok-4.20-reasoning",
+        messages: [
+          {
+            role: "system",
+            content: "You are a water conservation assistant for India. Give short, practical advice."
+          },
+          {
+            role: "user",
+            content: msg
+          }
+        ]
+      })
+    });
+
+    const data = await res.json();
+    console.log(data);
+
+    let reply =
+  data?.choices?.[0]?.message?.content ||
+  data?.choices?.[0]?.text ||
+  "No response";
+
+    box.innerHTML += "<div>AI: "+reply+"</div>";
+
+  } catch(e){
+    box.innerHTML += "<div>AI: Error connecting to Grok</div>";
+  }
+  */
+
+  box.scrollTop = box.scrollHeight;
 }
 
-/* 🚨 Toast Notification */
-function showToast(message) {
-    let toast = document.createElement("div");
-    toast.innerText = message;
-    toast.className = "toast";
+// ===== COMMUNITY =====
+function submitReport(){
+  let name = document.getElementById("r-name").value;
+  let area = document.getElementById("r-area").value;
+  let desc = document.getElementById("r-desc").value;
 
-    document.body.appendChild(toast);
+  if(!name||!area||!desc) return alert("Fill all");
 
-    setTimeout(() => {
-        toast.remove();
-    }, 3000);
-}
-function predictNext() {
-    let avg = getAverage(usageData);
-    let last = usageData[usageData.length - 1];
-
-    let prediction = Math.round((avg + last) / 2);
-
-    showToast("📊 Predicted Next Usage: " + prediction + " L");
+  let feed = document.getElementById("c-feed");
+  feed.innerHTML = `<b>${name}</b> (${area})<br>${desc}<hr>` + feed.innerHTML;
 }
