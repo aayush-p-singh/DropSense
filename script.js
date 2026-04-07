@@ -90,7 +90,17 @@ function updateUI(){
 function predictNext(){
   let avg = readings.reduce((a,b)=>a+b)/readings.length;
   let last = readings[readings.length-1];
-  alert("Prediction: "+Math.round((avg+last)/2)+"L");
+  let prediction = Math.round((avg+last)/2);
+  showPredictionModal(prediction);
+}
+
+function showPredictionModal(value){
+  document.getElementById("prediction-value").innerText = value;
+  document.getElementById("prediction-modal").classList.add("show");
+}
+
+function closePredictionModal(){
+  document.getElementById("prediction-modal").classList.remove("show");
 }
 
 // ===== ADVISORY =====
