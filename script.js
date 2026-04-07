@@ -1,5 +1,6 @@
 // ===== SHARED DATA =====
 let readings = JSON.parse(localStorage.getItem("waterData")) || [90,100,110];
+let reports = JSON.parse(localStorage.getItem("communityReports")) || [];
 let chart;
 let DAILY_LIMIT = 150;
 
@@ -31,6 +32,7 @@ window.onload = () => {
   });
 
   updateUI();
+  displayReports();
 };
 
 // ===== DATA FUNCTIONS =====
@@ -100,6 +102,12 @@ function refreshAdvisory(){
 
   document.getElementById("adv-score").innerText =
     avg < 120 ? "Good 👍" : "Reduce usage ⚠️";
+}
+
+// ===== DISPLAY REPORTS =====
+function displayReports(){
+  let feed = document.getElementById("c-feed");
+  feed.innerHTML = reports.map(r => `<b>${r.name}</b> (${r.area})<br>${r.desc}<hr>`).join('');
 }
 
 // ===== CHAT =====
@@ -181,6 +189,14 @@ function submitReport(){
 
   if(!name||!area||!desc) return alert("Fill all");
 
-  let feed = document.getElementById("c-feed");
-  feed.innerHTML = `<b>${name}</b> (${area})<br>${desc}<hr>` + feed.innerHTML;
+  let report = {name, area, desc};
+  reports.unshift(report); // Add to beginning
+  localStorage.setItem("communityReports", JSON.stringify(reports));
+
+  displayReports();
+
+  // Clear inputs
+  document.getElementById("r-name").value = "";
+  document.getElementById("r-area").value = "";
+  document.getElementById("r-desc").value = "";
 }
