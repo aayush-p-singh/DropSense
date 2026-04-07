@@ -3,132 +3,993 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>DropSense</title>
-
-<link rel="stylesheet" href="style.css">
+<title>DropSense — Smart Water Monitoring</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#04090f;
+  --surface:rgba(255,255,255,0.04);
+  --surface-hover:rgba(255,255,255,0.07);
+  --border:rgba(255,255,255,0.09);
+  --border-bright:rgba(255,255,255,0.18);
+  --accent:#38d9f5;
+  --accent-dim:rgba(56,217,245,0.15);
+  --accent-glow:rgba(56,217,245,0.25);
+  --danger:#f55b5b;
+  --danger-dim:rgba(245,91,91,0.15);
+  --ok:#3df5a8;
+  --ok-dim:rgba(61,245,168,0.12);
+  --warn:#f5c23d;
+  --warn-dim:rgba(245,194,61,0.15);
+  --text:#f0f4f8;
+  --text-muted:rgba(240,244,248,0.5);
+  --text-dim:rgba(240,244,248,0.3);
+  --font-display:'DM Serif Display',serif;
+  --font-body:'DM Sans',sans-serif;
+  --r:16px;
+  --r-sm:10px;
+  --r-xs:6px;
+}
+body{
+  font-family:var(--font-body);
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
 
+/* ===== LIQUID GLASS ===== */
+.glass{
+  background:rgba(8,20,36,0.55);
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+  border:1px solid var(--border);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 32px rgba(0,0,0,0.4);
+  position:relative;
+  overflow:hidden;
+}
+.glass::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
+  padding:1px;
+  background:linear-gradient(160deg,rgba(255,255,255,0.18) 0%,rgba(255,255,255,0.04) 40%,rgba(255,255,255,0) 60%,rgba(255,255,255,0.07) 100%);
+  -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+  -webkit-mask-composite:xor;
+  mask-composite:exclude;
+  pointer-events:none;
+}
+
+/* ===== VIDEO HERO ===== */
+.hero{
+  position:relative;
+  height:100vh;
+  width:100%;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+}
+.hero-video{
+  position:absolute;inset:0;
+  width:100%;height:100%;
+  object-fit:cover;
+  z-index:0;
+}
+.hero-overlay{
+  position:absolute;inset:0;
+  background:linear-gradient(to bottom, rgba(4,9,15,0.35) 0%, rgba(4,9,15,0.1) 50%, rgba(4,9,15,0.72) 100%);
+  z-index:1;
+}
+
+/* ===== NAVBAR ===== */
+.navbar{
+  position:relative;z-index:10;
+  padding:24px 40px 0;
+}
+.navbar-inner{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 20px;
+  border-radius:14px;
+}
+.logo{
+  font-family:var(--font-display);
+  font-size:22px;
+  letter-spacing:-0.02em;
+  color:var(--text);
+}
+.logo em{color:var(--accent);font-style:italic}
+.nav-links{
+  display:flex;gap:32px;
+  list-style:none;
+}
+.nav-links a{
+  font-size:13.5px;font-weight:400;
+  color:rgba(240,244,248,0.65);
+  text-decoration:none;
+  transition:color .2s;
+  cursor:pointer;
+}
+.nav-links a:hover,.nav-links a.active{color:var(--text)}
+.nav-cta{
+  background:var(--text);color:var(--bg);
+  border:none;border-radius:8px;
+  padding:9px 22px;font-size:13px;font-weight:500;
+  font-family:var(--font-body);
+  cursor:pointer;transition:opacity .2s;
+}
+.nav-cta:hover{opacity:.88}
+
+/* ===== HERO CONTENT ===== */
+.hero-body{
+  position:relative;z-index:10;
+  flex:1;display:flex;flex-direction:column;justify-content:flex-end;
+  padding:0 40px 52px;
+}
+.hero-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:flex-end;
+}
+.hero-heading{
+  font-family:var(--font-display);
+  font-size:clamp(42px,5.5vw,78px);
+  line-height:1.05;
+  letter-spacing:-0.035em;
+  font-weight:400;
+  margin-bottom:18px;
+}
+.hero-sub{
+  font-size:16px;font-weight:300;
+  color:rgba(240,244,248,0.72);
+  line-height:1.65;
+  max-width:460px;
+  margin-bottom:28px;
+}
+.hero-btns{display:flex;gap:14px;flex-wrap:wrap}
+.btn-primary{
+  background:var(--text);color:var(--bg);
+  border:none;border-radius:9px;
+  padding:13px 30px;font-size:14px;font-weight:500;
+  font-family:var(--font-body);cursor:pointer;
+  transition:opacity .2s,transform .2s;
+}
+.btn-primary:hover{opacity:.9;transform:translateY(-1px)}
+.btn-ghost{
+  background:rgba(255,255,255,0.08);
+  color:var(--text);
+  border:1px solid rgba(255,255,255,0.18);
+  border-radius:9px;
+  padding:13px 30px;font-size:14px;font-weight:400;
+  font-family:var(--font-body);cursor:pointer;
+  transition:all .2s;
+  backdrop-filter:blur(8px);
+}
+.btn-ghost:hover{background:rgba(255,255,255,0.15);transform:translateY(-1px)}
+.hero-tag{
+  display:flex;align-items:flex-end;justify-content:flex-end;
+}
+.hero-tag-card{
+  padding:16px 26px;border-radius:14px;
+  border:1px solid rgba(255,255,255,0.15);
+}
+.hero-tag-text{
+  font-size:clamp(16px,2vw,24px);font-weight:300;
+  color:var(--text);
+  letter-spacing:0.01em;
+}
+.scroll-hint{
+  position:absolute;bottom:20px;left:50%;transform:translateX(-50%);
+  z-index:10;display:flex;flex-direction:column;align-items:center;gap:6px;
+  opacity:.5;animation:bob 2s ease-in-out infinite;
+}
+.scroll-hint span{font-size:11px;letter-spacing:.12em;text-transform:uppercase}
+@keyframes bob{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(6px)}}
+
+/* ===== MAIN APP ===== */
+.app{
+  background:var(--bg);
+  min-height:100vh;
+}
+
+/* ===== APP NAV ===== */
+.app-nav{
+  position:sticky;top:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 36px;
+  border-bottom:1px solid var(--border);
+  background:rgba(4,9,15,0.88);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+}
+.app-logo{
+  font-family:var(--font-display);font-size:19px;
+  letter-spacing:-0.02em;
+}
+.app-logo em{color:var(--accent);font-style:italic}
+.tabs{display:flex;gap:4px;}
+.tab-btn{
+  background:none;border:1px solid transparent;
+  color:var(--text-muted);font-family:var(--font-body);
+  font-size:13px;font-weight:400;
+  padding:8px 18px;border-radius:8px;cursor:pointer;
+  transition:all .2s;
+}
+.tab-btn:hover{color:var(--text);background:var(--surface)}
+.tab-btn.active{
+  color:var(--text);background:var(--surface-hover);
+  border-color:var(--border-bright);
+}
+.status-pill{
+  font-size:12px;padding:5px 14px;border-radius:20px;font-weight:500;
+  transition:all .3s;
+}
+.pill-ok{background:var(--ok-dim);color:var(--ok);border:1px solid rgba(61,245,168,0.25)}
+.pill-danger{background:var(--danger-dim);color:var(--danger);border:1px solid rgba(245,91,91,0.3)}
+
+/* ===== SECTIONS ===== */
+.section{display:none;padding:36px;animation:fadeUp .4s ease both}
+.section.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.section-title{
+  font-family:var(--font-display);
+  font-size:28px;font-weight:400;
+  letter-spacing:-0.02em;margin-bottom:6px;
+}
+.section-sub{font-size:14px;color:var(--text-muted);margin-bottom:28px}
+
+/* ===== METRIC GRID ===== */
+.metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+.metric-card{
+  padding:20px 22px;border-radius:var(--r);
+  background:var(--surface);border:1px solid var(--border);
+  transition:background .2s;
+}
+.metric-card:hover{background:var(--surface-hover)}
+.metric-lbl{font-size:11.5px;color:var(--text-muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px}
+.metric-val{font-size:28px;font-weight:500;letter-spacing:-0.03em;line-height:1}
+.metric-delta{font-size:12px;margin-top:6px;color:var(--text-dim)}
+.delta-up{color:var(--danger)}
+.delta-down{color:var(--ok)}
+
+/* ===== TWO-COL LAYOUT ===== */
+.row-2{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:14px}
+.row-equal{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+
+/* ===== CARDS ===== */
+.panel{
+  padding:22px 24px;border-radius:var(--r);
+  background:var(--surface);border:1px solid var(--border);
+}
+.panel-title{font-size:13.5px;font-weight:500;color:var(--text-muted);letter-spacing:.04em;text-transform:uppercase;margin-bottom:16px}
+
+/* ===== CHART ===== */
+.chart-wrap{position:relative;width:100%;height:220px}
+
+/* ===== GAUGE ===== */
+.gauge-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;height:220px;gap:6px}
+.gauge-num{font-size:38px;font-weight:500;letter-spacing:-0.04em;color:var(--accent)}
+.gauge-unit{font-size:14px;color:var(--text-muted)}
+.gauge-lbl{font-size:13px;color:var(--text-muted)}
+
+/* ===== PROGRESS BAR ===== */
+.pbar-bg{height:4px;border-radius:4px;background:rgba(255,255,255,0.07);margin-top:12px;overflow:hidden}
+.pbar{height:100%;border-radius:4px;transition:width .6s ease,background .4s}
+
+/* ===== ALERT ITEMS ===== */
+.alert-item{
+  display:flex;align-items:flex-start;gap:12px;
+  padding:12px 14px;border-radius:var(--r-sm);
+  margin-bottom:8px;font-size:13.5px;
+}
+.alert-ok{background:var(--ok-dim);border:1px solid rgba(61,245,168,0.2)}
+.alert-danger{background:var(--danger-dim);border:1px solid rgba(245,91,91,0.25)}
+.alert-warn{background:var(--warn-dim);border:1px solid rgba(245,194,61,0.2)}
+.alert-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.dot-ok{background:var(--ok)}
+.dot-danger{background:var(--danger)}
+.dot-warn{background:var(--warn)}
+.alert-title{font-weight:500;margin-bottom:2px}
+.alert-ok .alert-title{color:var(--ok)}
+.alert-danger .alert-title{color:var(--danger)}
+.alert-warn .alert-title{color:var(--warn)}
+.alert-desc{color:var(--text-muted);line-height:1.5;font-size:12.5px}
+
+/* ===== HEATMAP ===== */
+.heatmap-row{display:grid;grid-template-columns:repeat(24,1fr);gap:3px}
+.hm-cell{height:22px;border-radius:3px;cursor:pointer;transition:transform .15s}
+.hm-cell:hover{transform:scaleY(1.3)}
+.hm-labels{display:grid;grid-template-columns:repeat(24,1fr);gap:3px;margin-top:4px}
+.hm-lbl{font-size:9px;color:var(--text-dim);text-align:center}
+
+/* ===== CONTROLS ===== */
+.ctrl-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:20px}
+.ctrl-btn{
+  background:var(--surface);border:1px solid var(--border);
+  color:var(--text);font-family:var(--font-body);font-size:13px;font-weight:400;
+  padding:10px 20px;border-radius:var(--r-sm);cursor:pointer;
+  transition:all .2s;
+}
+.ctrl-btn:hover{background:var(--surface-hover);border-color:var(--border-bright)}
+.ctrl-btn.accent{
+  background:var(--accent-dim);border-color:rgba(56,217,245,0.3);
+  color:var(--accent);
+}
+.ctrl-btn.accent:hover{background:rgba(56,217,245,0.22)}
+.ctrl-btn.danger{
+  background:var(--danger-dim);border-color:rgba(245,91,91,0.3);
+  color:var(--danger);
+}
+.ctrl-input{
+  flex:1;min-width:140px;
+  background:var(--surface);border:1px solid var(--border);
+  color:var(--text);font-family:var(--font-body);font-size:13px;
+  padding:10px 14px;border-radius:var(--r-sm);
+  outline:none;transition:border-color .2s;
+}
+.ctrl-input:focus{border-color:var(--accent)}
+.ctrl-input::placeholder{color:var(--text-dim)}
+
+/* ===== PREDICTION MODAL ===== */
+.modal{
+  display:none;position:fixed;inset:0;
+  z-index:1000;background:rgba(0,0,0,0.7);
+  backdrop-filter:blur(6px);
+  align-items:center;justify-content:center;
+}
+.modal.show{display:flex}
+.modal-box{
+  padding:40px 36px;border-radius:22px;
+  max-width:380px;width:90%;text-align:center;
+  background:rgba(8,18,32,0.97);
+  border:1px solid var(--border-bright);
+  box-shadow:0 0 60px rgba(56,217,245,0.12),0 24px 60px rgba(0,0,0,0.6);
+  animation:slideUp .35s cubic-bezier(.34,1.56,.64,1);
+  position:relative;
+}
+@keyframes slideUp{from{opacity:0;transform:translateY(32px)}to{opacity:1;transform:translateY(0)}}
+.modal-close{
+  position:absolute;top:14px;right:14px;
+  background:var(--surface);border:none;color:var(--text-muted);
+  width:32px;height:32px;border-radius:50%;
+  font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all .2s;
+}
+.modal-close:hover{background:var(--surface-hover);color:var(--text)}
+.modal-head{
+  font-family:var(--font-display);font-size:22px;
+  margin-bottom:28px;color:var(--text);
+}
+.pred-result{
+  padding:28px;border-radius:14px;
+  background:var(--accent-dim);border:1px solid rgba(56,217,245,0.25);
+  margin-bottom:16px;
+}
+.pred-num{font-size:58px;font-weight:500;color:var(--accent);line-height:1;letter-spacing:-0.04em}
+.pred-unit{font-size:22px;color:var(--accent);opacity:.7;margin-left:6px}
+.pred-note{font-size:13px;color:var(--text-muted);line-height:1.6}
+
+/* ===== ADVISORY ===== */
+.score-ring{
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;height:160px;gap:4px;
+}
+.score-val{font-size:52px;font-weight:500;letter-spacing:-0.04em}
+.score-lbl{font-size:13px;color:var(--text-muted)}
+
+/* ===== CHAT ===== */
+.chat-msgs{
+  max-height:280px;overflow-y:auto;
+  display:flex;flex-direction:column;gap:10px;
+  margin-bottom:14px;padding:4px 0;
+}
+.chat-msgs::-webkit-scrollbar{width:4px}
+.chat-msgs::-webkit-scrollbar-track{background:transparent}
+.chat-msgs::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.chat-bubble{
+  padding:10px 14px;border-radius:10px;
+  font-size:13.5px;line-height:1.55;max-width:85%;
+}
+.bubble-user{
+  align-self:flex-end;
+  background:var(--accent-dim);border:1px solid rgba(56,217,245,0.2);
+  color:var(--text);
+}
+.bubble-ai{
+  align-self:flex-start;
+  background:var(--surface);border:1px solid var(--border);
+  color:var(--text);
+}
+.bubble-ai .sender{font-size:11px;color:var(--text-dim);margin-bottom:4px}
+.chat-form{display:flex;gap:10px}
+.chat-send{
+  background:var(--accent-dim);border:1px solid rgba(56,217,245,0.3);
+  color:var(--accent);font-family:var(--font-body);font-size:13px;
+  padding:10px 18px;border-radius:var(--r-sm);cursor:pointer;
+  transition:all .2s;white-space:nowrap;
+}
+.chat-send:hover{background:rgba(56,217,245,0.22)}
+
+/* ===== SUGGESTIONS ===== */
+.tip-item{
+  display:flex;align-items:flex-start;gap:12px;
+  padding:12px 14px;border-radius:var(--r-sm);
+  background:var(--surface);border:1px solid var(--border);
+  margin-bottom:8px;font-size:13px;color:var(--text-muted);
+  line-height:1.5;
+}
+.tip-bullet{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--accent);flex-shrink:0;margin-top:6px;
+}
+
+/* ===== COMMUNITY ===== */
+.community-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.report-form-fields{display:flex;flex-direction:column;gap:10px}
+.report-feed{display:flex;flex-direction:column;gap:10px;max-height:400px;overflow-y:auto}
+.report-feed::-webkit-scrollbar{width:4px}
+.report-feed::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.report-card{
+  padding:14px 16px;border-radius:var(--r-sm);
+  background:var(--surface);border:1px solid var(--border);
+}
+.report-name{font-size:13px;font-weight:500;margin-bottom:2px}
+.report-area{font-size:11px;color:var(--text-dim);margin-bottom:8px}
+.report-desc{font-size:13px;color:var(--text-muted);line-height:1.55}
+.empty-state{font-size:13px;color:var(--text-dim);text-align:center;padding:32px 0}
+
+/* ===== RESPONSIVE ===== */
+@media(max-width:900px){
+  .metric-grid{grid-template-columns:repeat(2,1fr)}
+  .row-2,.row-equal,.community-grid{grid-template-columns:1fr}
+  .hero-grid{grid-template-columns:1fr}
+  .hero-tag{display:none}
+  .navbar,.hero-body{padding-left:20px;padding-right:20px}
+  .app-nav{padding:12px 20px}
+  .section{padding:20px}
+  .nav-links{display:none}
+}
+@media(max-width:600px){
+  .metric-grid{grid-template-columns:repeat(2,1fr)}
+  .tabs{gap:2px}
+  .tab-btn{padding:7px 12px;font-size:12px}
+}
+</style>
+</head>
 <body>
 
-<!-- ================= PREDICTION MODAL ================= -->
-<div id="prediction-modal" class="modal">
-  <div class="modal-content">
-    <button class="modal-close" onclick="closePredictionModal()">&times;</button>
-    <h2>📊 Next Usage Prediction</h2>
-    <div class="prediction-result">
-      <div class="prediction-value" id="prediction-value">0</div>
-      <div class="prediction-unit">L</div>
-    </div>
-    <p class="prediction-text">Based on your average usage pattern</p>
-  </div>
-</div>
+<!-- =================== HERO =================== -->
+<section class="hero" id="hero">
+  <video class="hero-video" autoplay loop muted playsinline>
+    <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260403_050628_c4e32401-fab4-4a27-b7a8-6e9291cd5959.mp4" type="video/mp4">
+  </video>
+  <div class="hero-overlay"></div>
 
-<header>
-  <div class="logo">Drop<em>Sense</em></div>
-  <nav>
-    <button class="active" onclick="showTab('prediction',this)">Prediction</button>
-    <button onclick="showTab('advisory',this)">AI Advisory</button>
-    <button onclick="showTab('community',this)">Community</button>
+  <nav class="navbar">
+    <div class="navbar-inner glass">
+      <div class="logo">Drop<em>Sense</em></div>
+      <ul class="nav-links">
+        <li><a class="active" onclick="navTo('dashboard')">Dashboard</a></li>
+        <li><a onclick="navTo('advisory')">Advisory</a></li>
+        <li><a onclick="navTo('community')">Community</a></li>
+        <li><a onclick="navTo('about')">About</a></li>
+      </ul>
+      <button class="nav-cta" onclick="scrollToApp()">Open Dashboard</button>
+    </div>
   </nav>
-</header>
 
-<main>
-
-<!-- ================= PREDICTION ================= -->
-<div class="section active" id="prediction">
-
-  <h2>Prediction Engine</h2>
-
-  <div id="prediction-app">
-
-    <h1>💧 DropSense Dashboard</h1>
-
-    <div class="dashboard">
-      <div class="card">
-        <h3>📊 Current Usage</h3>
-        <h1 id="usage">100 <span>L</span></h1>
+  <div class="hero-body">
+    <div class="hero-grid">
+      <div>
+        <h1 class="hero-heading">Monitor every<br><em style="font-style:italic;color:var(--accent)">drop</em> of it.</h1>
+        <p class="hero-sub">Real-time water usage tracking, AI-powered leakage detection, and community insights — designed to reduce waste and build smarter habits.</p>
+        <div class="hero-btns">
+          <button class="btn-primary" onclick="scrollToApp()">Open Dashboard</button>
+          <button class="btn-ghost">Learn More</button>
+        </div>
       </div>
-
-      <div class="card">
-        <h3>📈 Average Usage</h3>
-        <h1 id="average">100 <span>L</span></h1>
-      </div>
-
-      <div class="card">
-        <h3>⚡ Status</h3>
-        <h2 id="alert" class="normal">Normal ✅</h2>
+      <div class="hero-tag">
+        <div class="hero-tag-card glass">
+          <div class="hero-tag-text">Monitor. Detect. Conserve.</div>
+        </div>
       </div>
     </div>
+  </div>
 
-    <div class="progress-container">
-      <p>Daily Usage Limit</p>
-      <div class="progress-bar">
-        <div id="progress"></div>
-      </div>
+  <div class="scroll-hint">
+    <span>scroll</span>
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+  </div>
+</section>
+
+<!-- =================== PREDICTION MODAL =================== -->
+<div id="prediction-modal" class="modal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closePredictionModal()">×</button>
+    <div class="modal-head">Next Reading Estimate</div>
+    <div class="pred-result">
+      <span class="pred-num" id="prediction-value">—</span>
+      <span class="pred-unit">L</span>
     </div>
-
-    <div class="controls">
-      <button onclick="predictNext()">� Predict Next Usage</button>
-      <button onclick="addUsage()">💧 Simulate Usage</button>
-
-      <div class="input-group">
-        <input type="number" id="manualInput" placeholder="Enter usage (L)">
-        <button onclick="addManual()">➕ Add Manual</button>
-      </div>
-    </div>
-
-    <canvas id="myChart"></canvas>
-
+    <p class="pred-note">Estimated from rolling average of your last <span id="pred-count">3</span> readings</p>
   </div>
 </div>
 
-<!-- ================= ADVISORY ================= -->
-<div class="section" id="advisory">
-  <h2>🤖 AI Advisory</h2>
+<!-- =================== APP =================== -->
+<div class="app" id="app">
 
-  <div class="card">
-    <h3>📋 Usage Summary</h3>
-    <div id="adv-summary">No data yet</div>
-  </div>
+  <nav class="app-nav">
+    <div class="app-logo">Drop<em>Sense</em></div>
+    <div class="tabs">
+      <button class="tab-btn active" onclick="showTab('dashboard',this)">Dashboard</button>
+      <button class="tab-btn" onclick="showTab('advisory',this)">Advisory</button>
+      <button class="tab-btn" onclick="showTab('community',this)">Community</button>
+    </div>
+    <span class="status-pill pill-ok" id="system-status">System Normal</span>
+  </nav>
 
-  <div class="card">
-    <h3>🏆 Conservation Score</h3>
-    <div id="adv-score">—</div>
-  </div>
+  <!-- ========= DASHBOARD ========= -->
+  <div class="section active" id="dashboard">
+    <div class="section-title">Water Dashboard</div>
+    <div class="section-sub">Live monitoring based on simulated sensor data</div>
 
-  <div class="card">
-    <h3>💬 Ask the AI Assistant</h3>
-    <div id="chat-msgs"></div>
+    <div class="metric-grid">
+      <div class="metric-card">
+        <div class="metric-lbl">Current reading</div>
+        <div class="metric-val" id="m-current">100 <span style="font-size:16px;color:var(--text-muted)">L</span></div>
+        <div class="metric-delta" id="m-current-d">Awaiting update</div>
+        <div class="pbar-bg"><div class="pbar" id="progress" style="width:0%;background:var(--accent)"></div></div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-lbl">Average usage</div>
+        <div class="metric-val" id="m-avg">100 <span style="font-size:16px;color:var(--text-muted)">L</span></div>
+        <div class="metric-delta">Rolling mean</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-lbl">Total readings</div>
+        <div class="metric-val" id="m-count">3</div>
+        <div class="metric-delta" id="m-count-d">Entries logged</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-lbl">Leakage status</div>
+        <div class="metric-val" id="m-status" style="font-size:18px;color:var(--ok)">Normal ✓</div>
+        <div class="metric-delta" id="m-status-d">Within threshold</div>
+      </div>
+    </div>
 
-    <div style="display:flex; gap:10px;">
-      <input id="chat-input" placeholder="Ask about water conservation..." onkeydown="if(event.key==='Enter')sendChat()">
-      <button onclick="sendChat()">📤 Send</button>
+    <div class="row-2">
+      <div class="panel">
+        <div class="panel-title">Usage trend</div>
+        <div class="chart-wrap"><canvas id="myChart"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">Live gauge</div>
+        <div class="gauge-wrap">
+          <svg id="gauge-svg" viewBox="0 0 160 100" width="140">
+            <path d="M14,90 A66,66 0 0,1 146,90" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="10" stroke-linecap="round"/>
+            <path id="gauge-arc" d="M14,90 A66,66 0 0,1 146,90" fill="none" stroke="var(--accent)" stroke-width="10" stroke-linecap="round" stroke-dasharray="207" stroke-dashoffset="145"/>
+          </svg>
+          <div class="gauge-num" id="gauge-num">100</div>
+          <div class="gauge-unit">Liters</div>
+          <div class="gauge-lbl" id="gauge-lbl">Normal flow</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row-2" style="margin-bottom:14px">
+      <div class="panel">
+        <div class="panel-title">Hourly heatmap</div>
+        <div class="heatmap-row" id="heatmap"></div>
+        <div class="hm-labels" id="hm-labels"></div>
+        <div style="display:flex;gap:8px;align-items:center;margin-top:10px">
+          <span style="font-size:11px;color:var(--text-dim)">Low</span>
+          <div style="display:flex;gap:2px">
+            <div style="width:12px;height:8px;border-radius:2px;background:rgba(56,217,245,0.15)"></div>
+            <div style="width:12px;height:8px;border-radius:2px;background:rgba(56,217,245,0.4)"></div>
+            <div style="width:12px;height:8px;border-radius:2px;background:var(--accent)"></div>
+            <div style="width:12px;height:8px;border-radius:2px;background:#f5c23d"></div>
+            <div style="width:12px;height:8px;border-radius:2px;background:var(--danger)"></div>
+          </div>
+          <span style="font-size:11px;color:var(--text-dim)">Anomaly</span>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">Alerts</div>
+        <div id="alert-list"></div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:14px">
+      <div class="panel-title">Simulate &amp; add data</div>
+      <div class="ctrl-row">
+        <button class="ctrl-btn accent" onclick="addUsage()">Simulate reading</button>
+        <button class="ctrl-btn" onclick="predictNext()">Predict next</button>
+        <input class="ctrl-input" type="number" id="manualInput" placeholder="Enter reading (L)">
+        <button class="ctrl-btn" onclick="addManual()">Add manual</button>
+        <button class="ctrl-btn danger" onclick="resetData()">Reset data</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Conservation tips</div>
+      <div id="tips-list"></div>
     </div>
   </div>
-</div>
 
-<!-- ================= COMMUNITY ================= -->
-<div class="section" id="community">
-  <h2>🌍 Community Reports</h2>
+  <!-- ========= ADVISORY ========= -->
+  <div class="section" id="advisory">
+    <div class="section-title">AI Advisory</div>
+    <div class="section-sub">Insights and personalized water-saving guidance</div>
 
-  <div class="card">
-    <h3>📝 Submit a Report</h3>
-    <input id="r-name" placeholder="Your Name">
-    <input id="r-area" placeholder="Area/Location">
-    <textarea id="r-desc" placeholder="Describe water issues or conservation tips..."></textarea>
-    <button onclick="submitReport()">🚀 Submit Report</button>
+    <div class="row-equal" style="margin-bottom:14px">
+      <div class="panel">
+        <div class="panel-title">Usage summary</div>
+        <div id="adv-summary" style="font-size:26px;font-weight:500;letter-spacing:-0.03em;margin-bottom:6px">—</div>
+        <div id="adv-note" style="font-size:13px;color:var(--text-muted)">Average across all readings</div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">Conservation score</div>
+        <div class="score-ring">
+          <div class="score-val" id="adv-score-val" style="color:var(--ok)">Good</div>
+          <div class="score-lbl" id="adv-score-sub">Based on your average usage</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Ask the water assistant</div>
+      <div class="chat-msgs" id="chat-msgs"></div>
+      <div class="chat-form">
+        <input class="ctrl-input" id="chat-input" placeholder="Ask about water conservation…" onkeydown="if(event.key==='Enter')sendChat()">
+        <button class="chat-send" onclick="sendChat()">Send</button>
+      </div>
+    </div>
   </div>
 
-  <div class="card">
-    <h3>📢 Community Feed</h3>
-    <div id="c-feed"></div>
+  <!-- ========= COMMUNITY ========= -->
+  <div class="section" id="community">
+    <div class="section-title">Community</div>
+    <div class="section-sub">Share water issues and conservation tips with your local area</div>
+
+    <div class="community-grid">
+      <div class="panel">
+        <div class="panel-title">Submit a report</div>
+        <div class="report-form-fields">
+          <input class="ctrl-input" id="r-name" placeholder="Your name">
+          <input class="ctrl-input" id="r-area" placeholder="Area / location">
+          <textarea class="ctrl-input" id="r-desc" rows="4" placeholder="Describe the issue or share a tip…" style="resize:vertical"></textarea>
+          <button class="ctrl-btn accent" onclick="submitReport()" style="align-self:flex-start">Submit report</button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">Community feed</div>
+        <div class="report-feed" id="c-feed"></div>
+      </div>
+    </div>
   </div>
+
 </div>
 
-</main>
+<script>
+let readings = JSON.parse(localStorage.getItem("waterData")) || [90,100,110];
+let reports = JSON.parse(localStorage.getItem("communityReports")) || [];
+let chart;
+const DAILY_LIMIT = 150;
 
-<script src="script.js"></script>
+// ===== SCROLL & NAVIGATION =====
+function scrollToApp(){
+  document.getElementById('app').scrollIntoView({behavior:'smooth'});
+}
 
+function navTo(section){
+  if(section==='about'){
+    document.getElementById('hero').scrollIntoView({behavior:'smooth'});
+    updateNavLinks('about');
+  } else {
+    scrollToApp();
+    setTimeout(()=>{
+      showTab(section, document.querySelector(`[onclick="showTab('${section}'`));
+      updateNavLinks(section);
+    }, 300);
+  }
+}
+
+function updateNavLinks(activeSection){
+  const tabMap = {dashboard: 'dashboard', advisory: 'advisory', community: 'community'};
+  document.querySelectorAll('.nav-links a').forEach(link=>link.classList.remove('active'));
+  if(activeSection==='about'){
+    document.querySelector('.nav-links a:nth-child(4)').classList.add('active');
+  }else if(tabMap[activeSection]){
+    const linkIndex={dashboard:0,advisory:1,community:2}[activeSection];
+    document.querySelectorAll('.nav-links a')[linkIndex].classList.add('active');
+  }
+}
+
+// ===== TAB =====
+function showTab(id,btn){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+  if(id==='advisory') refreshAdvisory();
+}
+
+// ===== CHART INIT =====
+window.onload=()=>{
+  const ctx=document.getElementById('myChart');
+  chart=new Chart(ctx,{
+    type:'line',
+    data:{
+      labels:readings.map((_,i)=>i+1),
+      datasets:[
+        {label:'Usage',data:[...readings],borderColor:'#38d9f5',backgroundColor:'rgba(56,217,245,0.06)',borderWidth:2,pointRadius:3,pointBackgroundColor:'#38d9f5',tension:.4,fill:true},
+        {label:'Avg',data:readings.map(()=>avg(readings)),borderColor:'rgba(255,255,255,0.18)',borderWidth:1.5,borderDash:[5,4],pointRadius:0,fill:false}
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'rgba(240,244,248,0.35)',font:{size:11}}},
+        y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'rgba(240,244,248,0.35)',font:{size:11},callback:v=>v+'L'}}
+      }
+    }
+  });
+  updateUI();
+  buildHeatmap();
+  buildAlerts();
+  buildTips();
+  displayReports();
+};
+
+// ===== HELPERS =====
+function avg(arr){return arr.reduce((a,b)=>a+b,0)/arr.length}
+
+// ===== DATA =====
+function addUsage(){
+  const val=Math.random()>0.7?200:Math.floor(Math.random()*40)+80;
+  addData(val);
+}
+function addManual(){
+  const val=parseFloat(document.getElementById('manualInput').value);
+  if(!val||val<=0)return;
+  document.getElementById('manualInput').value='';
+  addData(val);
+}
+function addData(val){
+  readings.push(val);
+  localStorage.setItem('waterData',JSON.stringify(readings));
+  updateChart();
+  updateUI();
+  buildAlerts();
+  buildHeatmap();
+  refreshAdvisory();
+}
+function resetData(){
+  if(!confirm('Reset all readings?'))return;
+  readings=[90,100,110];
+  localStorage.setItem('waterData',JSON.stringify(readings));
+  updateChart();
+  updateUI();
+  buildAlerts();
+  buildHeatmap();
+}
+
+// ===== CHART UPDATE =====
+function updateChart(){
+  const a=avg(readings);
+  chart.data.labels=readings.map((_,i)=>i+1);
+  chart.data.datasets[0].data=[...readings];
+  chart.data.datasets[1].data=readings.map(()=>a);
+  chart.update();
+}
+
+// ===== UI UPDATE =====
+function updateUI(){
+  const a=avg(readings);
+  const cur=readings[readings.length-1];
+  const ratio=cur/a;
+  const pct=Math.min((cur/DAILY_LIMIT)*100,100);
+
+  document.getElementById('m-current').innerHTML=`${Math.round(cur)} <span style="font-size:16px;color:var(--text-muted)">L</span>`;
+  document.getElementById('m-avg').innerHTML=`${Math.round(a)} <span style="font-size:16px;color:var(--text-muted)">L</span>`;
+  document.getElementById('m-count').textContent=readings.length;
+  document.getElementById('m-count-d').textContent=readings.length===1?'1 entry logged':readings.length+' entries logged';
+
+  const pb=document.getElementById('progress');
+  pb.style.width=pct+'%';
+  pb.style.background=pct>90?'var(--danger)':pct>65?'var(--warn)':'var(--accent)';
+
+  const mcd=document.getElementById('m-current-d');
+  if(ratio>1.5){
+    mcd.textContent='↑ '+ratio.toFixed(1)+'× above average';
+    mcd.className='metric-delta delta-up';
+  } else if(ratio>1.1){
+    mcd.textContent='Slightly elevated';
+    mcd.className='metric-delta';
+    mcd.style.color='var(--warn)';
+  } else {
+    mcd.textContent='Within normal range';
+    mcd.className='metric-delta delta-down';
+  }
+
+  const ms=document.getElementById('m-status');
+  const msd=document.getElementById('m-status-d');
+  const sp=document.getElementById('system-status');
+  if(ratio>1.5){
+    ms.textContent='Leak ⚠';ms.style.color='var(--danger)';
+    msd.textContent='Exceeds 1.5× avg threshold';
+    sp.textContent='Leak Detected';sp.className='status-pill pill-danger';
+  } else {
+    ms.textContent='Normal ✓';ms.style.color='var(--ok)';
+    msd.textContent='Within threshold';
+    sp.textContent='System Normal';sp.className='status-pill pill-ok';
+  }
+
+  updateGauge(cur,ratio);
+}
+
+// ===== GAUGE =====
+function updateGauge(val,ratio){
+  const max=250;
+  const pct=Math.min(val/max,1);
+  const total=207;
+  const offset=total-(pct*total);
+  const arc=document.getElementById('gauge-arc');
+  arc.setAttribute('stroke-dashoffset',offset.toFixed(1));
+  arc.setAttribute('stroke',ratio>1.5?'#f55b5b':ratio>1.1?'#f5c23d':'#38d9f5');
+  document.getElementById('gauge-num').textContent=Math.round(val);
+  document.getElementById('gauge-num').style.color=ratio>1.5?'var(--danger)':ratio>1.1?'var(--warn)':'var(--accent)';
+  document.getElementById('gauge-lbl').textContent=ratio>1.5?'Possible leakage':ratio>1.1?'Elevated':'Normal flow';
+}
+
+// ===== HEATMAP =====
+const hmBase=[5,3,2,2,4,9,18,22,20,15,12,14,16,13,11,10,12,15,18,16,12,9,7,5];
+function buildHeatmap(){
+  const hm=document.getElementById('heatmap');
+  const lbl=document.getElementById('hm-labels');
+  hm.innerHTML='';lbl.innerHTML='';
+  const lastVal=readings[readings.length-1];
+  const curHour=new Date().getHours();
+  const data=hmBase.map((v,i)=>i===curHour?lastVal:v);
+  const a=avg(data);
+  data.forEach((v,i)=>{
+    const r=v/a;
+    const col=r>1.8?'rgba(245,91,91,0.85)':r>1.3?'rgba(245,194,61,0.8)':r>0.8?'rgba(56,217,245,0.7)':r>0.4?'rgba(56,217,245,0.35)':'rgba(56,217,245,0.1)';
+    const c=document.createElement('div');
+    c.className='hm-cell';c.style.background=col;
+    c.title=`${i}:00 — ${v}L`;
+    hm.appendChild(c);
+    const l=document.createElement('div');
+    l.className='hm-lbl';l.textContent=i%6===0?i:'';
+    lbl.appendChild(l);
+  });
+}
+
+// ===== ALERTS =====
+function buildAlerts(){
+  const a=avg(readings);
+  const cur=readings[readings.length-1];
+  const ratio=cur/a;
+  const list=document.getElementById('alert-list');
+  list.innerHTML='';
+  const alerts=ratio>1.5?[
+    {type:'danger',title:'Leakage detected',desc:`Current reading ${Math.round(cur)}L is ${ratio.toFixed(1)}× the average of ${Math.round(a)}L.`},
+    {type:'warn',title:'Check your pipes',desc:'Sustained high flow may indicate a running tap or pipe issue.'}
+  ]:[
+    {type:'ok',title:'Flow normal',desc:`Reading of ${Math.round(cur)}L is within expected range.`},
+    {type:'ok',title:'No anomalies',desc:'All recent readings are consistent with your baseline.'}
+  ];
+  alerts.forEach(al=>{
+    const el=document.createElement('div');
+    el.className=`alert-item alert-${al.type}`;
+    el.innerHTML=`<div class="alert-dot dot-${al.type}"></div><div><div class="alert-title">${al.title}</div><div class="alert-desc">${al.desc}</div></div>`;
+    list.appendChild(el);
+  });
+}
+
+// ===== TIPS =====
+const TIPS=[
+  'Fix dripping taps — a slow drip wastes up to 20L per day.',
+  'Take showers under 5 minutes to save up to 40L per session.',
+  'Run washing machines and dishwashers only when full.',
+  'Water plants early morning to minimise evaporation.',
+  'Install aerators on taps to reduce flow without pressure loss.',
+  'Collect cold water while waiting for hot — use it for plants.'
+];
+function buildTips(){
+  const tl=document.getElementById('tips-list');
+  tl.innerHTML='';
+  TIPS.forEach(t=>{
+    const el=document.createElement('div');
+    el.className='tip-item';
+    el.innerHTML=`<div class="tip-bullet"></div><span>${t}</span>`;
+    tl.appendChild(el);
+  });
+}
+
+// ===== PREDICTION =====
+function predictNext(){
+  const a=avg(readings);
+  const last=readings[readings.length-1];
+  const pred=Math.round((a+last)/2);
+  document.getElementById('prediction-value').textContent=pred;
+  document.getElementById('pred-count').textContent=readings.length;
+  document.getElementById('prediction-modal').classList.add('show');
+}
+function closePredictionModal(){
+  document.getElementById('prediction-modal').classList.remove('show');
+}
+
+// ===== ADVISORY =====
+function refreshAdvisory(){
+  const a=avg(readings);
+  document.getElementById('adv-summary').textContent=Math.round(a)+' L';
+  document.getElementById('adv-note').textContent=`Average across ${readings.length} reading${readings.length>1?'s':''}`;
+  const sv=document.getElementById('adv-score-val');
+  const ss=document.getElementById('adv-score-sub');
+  if(a<100){sv.textContent='Excellent';sv.style.color='var(--ok)';ss.textContent='Well below the 150L/day limit'}
+  else if(a<130){sv.textContent='Good';sv.style.color='var(--accent)';ss.textContent='Under daily recommended limit'}
+  else if(a<160){sv.textContent='Fair';sv.style.color='var(--warn)';ss.textContent='Close to the daily limit'}
+  else{sv.textContent='High';sv.style.color='var(--danger)';ss.textContent='Above 150L/day — consider reducing'}
+}
+
+// ===== CHAT =====
+const AI_REPLIES=[
+  'Fix leaky faucets first — a dripping tap can waste up to 20L daily.',
+  'Turn off the tap while brushing teeth to save up to 8L per minute.',
+  'Consider installing low-flow showerheads — they can cut shower usage by 40%.',
+  'Check your water meter overnight to detect hidden leaks in pipes.',
+  'Collect and reuse greywater from sinks and showers for garden irrigation.',
+  'Using a dishwasher on full load is actually more water-efficient than hand-washing.',
+];
+function sendChat(){
+  const inp=document.getElementById('chat-input');
+  const msg=inp.value.trim();
+  if(!msg)return;
+  const box=document.getElementById('chat-msgs');
+  const ub=document.createElement('div');
+  ub.className='chat-bubble bubble-user';ub.textContent=msg;
+  box.appendChild(ub);
+  inp.value='';
+  const thinking=document.createElement('div');
+  thinking.className='chat-bubble bubble-ai';
+  thinking.innerHTML='<div class="sender">DropSense AI</div>Thinking…';
+  box.appendChild(thinking);
+  box.scrollTop=box.scrollHeight;
+  setTimeout(()=>{
+    const reply=AI_REPLIES[Math.floor(Math.random()*AI_REPLIES.length)];
+    thinking.innerHTML=`<div class="sender">DropSense AI</div>${reply}`;
+    box.scrollTop=box.scrollHeight;
+  },900);
+}
+
+// ===== COMMUNITY =====
+function displayReports(){
+  const feed=document.getElementById('c-feed');
+  if(!reports.length){feed.innerHTML='<div class="empty-state">No reports yet. Be the first to share.</div>';return;}
+  feed.innerHTML=reports.map(r=>`
+    <div class="report-card">
+      <div class="report-name">${r.name}</div>
+      <div class="report-area">${r.area}</div>
+      <div class="report-desc">${r.desc}</div>
+    </div>`).join('');
+}
+function submitReport(){
+  const name=document.getElementById('r-name').value.trim();
+  const area=document.getElementById('r-area').value.trim();
+  const desc=document.getElementById('r-desc').value.trim();
+  if(!name||!area||!desc)return;
+  reports.unshift({name,area,desc});
+  localStorage.setItem('communityReports',JSON.stringify(reports));
+  displayReports();
+  document.getElementById('r-name').value='';
+  document.getElementById('r-area').value='';
+  document.getElementById('r-desc').value='';
+}
+</script>
 </body>
 </html>
