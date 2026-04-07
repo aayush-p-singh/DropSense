@@ -461,7 +461,6 @@ body{
 </head>
 <body>
 
-<!-- =================== HERO =================== -->
 <section class="hero" id="hero">
   <video class="hero-video" autoplay loop muted playsinline>
     <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260403_050628_c4e32401-fab4-4a27-b7a8-6e9291cd5959.mp4" type="video/mp4">
@@ -505,7 +504,6 @@ body{
   </div>
 </section>
 
-<!-- =================== PREDICTION MODAL =================== -->
 <div id="prediction-modal" class="modal">
   <div class="modal-box">
     <button class="modal-close" onclick="closePredictionModal()">×</button>
@@ -518,32 +516,7 @@ body{
   </div>
 </div>
 
-<!-- =================== APP =================== -->
-<!-- ABOUT SECTION -->
-<div class="section" id="about">
-  <div class="section-title">About DropSense</div>
-  <div class="section-sub">Smart water monitoring and advisory platform</div>
-
-  <div class="panel">
-    <p>
-      DropSense is a smart web-based platform designed to monitor water usage and detect potential leakages in real time.
-    </p>
-
-    <h3 style="margin-top:15px;">Key Features</h3>
-    <ul>
-      <li>Real-time Monitoring</li>
-      <li>Leak Detection</li>
-      <li>Usage Prediction</li>
-      <li>AI Advisory</li>
-      <li>Community Reports</li>
-    </ul>
-
-    <p style="margin-top:15px;">
-      This prototype uses simulated data but is designed for real IoT integration.
-    </p>
-  </div>
-</div>
-  <div class="app" id="app">
+<div class="app" id="app">
 
   <nav class="app-nav">
     <div class="app-logo">Drop<em>Sense</em></div>
@@ -556,7 +529,6 @@ body{
     <span class="status-pill pill-ok" id="system-status">System Normal</span>
   </nav>
 
-  <!-- ========= DASHBOARD ========= -->
   <div class="section active" id="dashboard">
     <div class="section-title">Water Dashboard</div>
     <div class="section-sub">Live monitoring based on simulated sensor data</div>
@@ -644,7 +616,6 @@ body{
     </div>
   </div>
 
-  <!-- ========= ADVISORY ========= -->
   <div class="section" id="advisory">
     <div class="section-title">AI Advisory</div>
     <div class="section-sub">Insights and personalized water-saving guidance</div>
@@ -674,7 +645,6 @@ body{
     </div>
   </div>
 
-  <!-- ========= COMMUNITY ========= -->
   <div class="section" id="community">
     <div class="section-title">Community</div>
     <div class="section-sub">Share water issues and conservation tips with your local area</div>
@@ -696,6 +666,20 @@ body{
     </div>
   </div>
 
+  <div class="section" id="about">
+    <div class="section-title">About Us</div>
+    <div class="section-sub">Project mission and goals</div>
+    
+    <div class="panel" style="margin-top: 14px;">
+      <p style="margin-bottom: 12px; line-height: 1.6;">
+        DropSense is a student-built project focused on reducing water wastage through intelligent monitoring and analysis.
+      </p>
+      <p style="line-height: 1.6;">
+        Our goal is to create a scalable solution that combines data, technology, and user awareness to promote smarter water usage in homes and communities.
+      </p>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -710,25 +694,19 @@ function scrollToApp(){
 }
 
 function navTo(section){
-  if(section==='about'){
-    document.getElementById('hero').scrollIntoView({behavior:'smooth'});
-    updateNavLinks('about');
-  } else {
-    scrollToApp();
-    setTimeout(()=>{
-      showTab(section, document.querySelector(`[onclick="showTab('${section}'`));
-      updateNavLinks(section);
-    }, 300);
-  }
+  scrollToApp();
+  setTimeout(()=>{
+    // Find the corresponding tab button and click it programmatically
+    const btn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute('onclick').includes(`'${section}'`));
+    if(btn) showTab(section, btn);
+    updateNavLinks(section);
+  }, 300);
 }
 
 function updateNavLinks(activeSection){
-  const tabMap = {dashboard: 'dashboard', advisory: 'advisory', community: 'community'};
-  document.querySelectorAll('.nav-links a').forEach(link=>link.classList.remove('active'));
-  if(activeSection==='about'){
-    document.querySelector('.nav-links a:nth-child(4)').classList.add('active');
-  }else if(tabMap[activeSection]){
-    const linkIndex={dashboard:0,advisory:1,community:2}[activeSection];
+  const linkIndex = {dashboard: 0, advisory: 1, community: 2, about: 3}[activeSection];
+  document.querySelectorAll('.nav-links a').forEach(link => link.classList.remove('active'));
+  if(linkIndex !== undefined){
     document.querySelectorAll('.nav-links a')[linkIndex].classList.add('active');
   }
 }
