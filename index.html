@@ -801,7 +801,7 @@ function initializeChatIfEmpty(){
   if(!box.children.length){
     const greeting=document.createElement('div');
     greeting.className='chat-bubble bubble-ai';
-    greeting.innerHTML=`<div class="sender" style="font-weight: 600; margin-bottom: 4px; color: #38d9f5;">💧 DropSense AI</div><div style="line-height: 1.5;">Hi! 👋 I'm your water conservation assistant. I can help you:<br><br>• <strong>Detect leaks</strong> and fix them<br>• <strong>Save water</strong> with practical tips<br>• <strong>Optimize</strong> your water usage<br>• <strong>Monitor</strong> your usage patterns<br><br>What would you like to know?</div>`;
+    greeting.innerHTML=`<div class="sender" style="font-weight: 600; margin-bottom: 4px; color: #38d9f5;">💧 DropSense AI</div><div style="line-height: 1.5;">Hi! 👋 I'm your AI-powered water conservation assistant powered by Mistral AI. I can help you:<br><br>• <strong>Detect leaks</strong> and fix them<br>• <strong>Save water</strong> with practical tips<br>• <strong>Optimize</strong> your water usage<br>• <strong>Understand</strong> your usage patterns<br><br>Ask me anything about water conservation!</div>`;
     box.appendChild(greeting);
     box.scrollTop=box.scrollHeight;
   }
@@ -1197,116 +1197,104 @@ function refreshAdvisory(){
   window.currentRecommendation=recommendation;
 }
 
-// ===== AI CHAT SYSTEM =====
-// Knowledge base with context-aware responses
-const AI_KNOWLEDGE={
-  leak:{
-    keywords:['leak','drip','drop','waste','lose','pipe','broken','damaged','running'],
-    responses:[
-      '🔧 <strong>Leak Detection:</strong> Listen for hissing sounds. A slow drip wastes 20L/day! Check your water meter overnight — if it changes with no usage, there\'s a leak.',
-      '💧 <strong>Common Leaks:</strong> Check faucets (most common), toilet running (can waste 200L/day!), and underground pipes. Use food coloring in toilet to detect silent leaks.',
-      '🚨 <strong>Emergency Action:</strong> If you suspect a major leak, turn off the main water valve and call a plumber. Wasting water also wastes money!',
-    ]
-  },
-  save:{
-    keywords:['save','reduce','conserve','lower','decrease','cut','usage','less','efficient'],
-    responses:[
-      '💡 <strong>Quick Wins:</strong> Fix dripping taps (20L/day), take 5-min showers (40L) instead of baths (100L+), and turn off taps while soaping. Small changes = big impact!',
-      '🚿 <strong>Shower Smart:</strong> Install a low-flow showerhead to cut usage by 40%. Take military showers: wet, soap (tap off), rinse.',
-      '🍽️ <strong>Kitchen Tips:</strong> A full dishwasher uses 27L vs. 100+ L hand-washing. Fill the sink instead of running water continuously.',
-      '🌿 <strong>Outdoor Watering:</strong> Water plants early morning/evening (less evaporation). Use drip irrigation, not sprinklers. Collect rainwater.',
-    ]
-  },
-  bathroom:{
-    keywords:['bathroom','shower','bath','toilet','tap','sink','flush','wash'],
-    responses:[
-      '🚽 <strong>Toilet Efficiency:</strong> Most water is used here! Dual-flush toilets save 50%. Don\'t use as trash. Fix running toilets immediately (can waste 200L/day).',
-      '🚿 <strong>Shower vs. Bath:</strong> 5-min shower (25-50L) beats a bath (100-150L). Use a shower timer to stay under 5 minutes.',
-      '🩸 <strong>Handwashing:</strong> Fill a basin (5L) instead of running water (8L/min). You\'ll save 40L per wash session.',
-    ]
-  },
-  laundry:{
-    keywords:['laundry','washing','clothes','machine','wash','load'],
-    responses:[
-      '👕 <strong>Washing Machine:</strong> Use full loads only (125L vs. 70L per load). Modern machines are 40% more efficient than older ones.',
-      '💧 <strong>Water-Saving Tips:</strong> Choose shorter cycles for lightly soiled clothes. Some machines have "eco" modes that save 30% water.',
-    ]
-  },
-  garden:{
-    keywords:['garden','plant','water','green','lawn','outdoor','yard','tree'],
-    responses:[
-      '🌱 <strong>Smart Gardening:</strong> Water early morning (before 10am) to reduce evaporation. Deep watering 2x/week beats daily sprinkles.',
-      '💧 <strong>Drip Irrigation:</strong> Uses 50% less water than sprinklers. Mulch plants to retain soil moisture. Choose drought-resistant plants.',
-      '🌧️ <strong>Rainwater Harvesting:</strong> A 50L tank can save 2,000L/year. Install gutters to collect roof runoff.',
-    ]
-  },
-  cooking:{
-    keywords:['cooking','kitchen','food','cook','dish','clean','pan','pot'],
-    responses:[
-      '🍳 <strong>Cooking Smart:</strong> Fill pots efficiently. Boil water in a kettle (faster, less waste). Don\'t rinse pasta after cooking.',
-      '🍽️ <strong>Dishwashing:</strong> Full dishwasher (27L) beats hand-washing (100L+). Scrape, don\'t rinse. Air-dry when possible.',
-    ]
-  },
-  monitoring:{
-    keywords:['monitor','track','meter','meter','usage','reading','data','alert'],
-    responses:[
-      '📊 <strong>Usage Tracking:</strong> Your current usage is '+Math.round(readings[readings.length-1])+'L. Average is '+Math.round(avg(readings))+'L. Set alerts for spikes.',
-      '🔔 <strong>Leak Alert System:</strong> If usage suddenly jumps 50%+ without explanation, it\'s likely a leak. Investigate immediately!',
-      '📈 <strong>Trend Analysis:</strong> Compare daily/weekly usage. Spikes in morning = showers. Afternoon spikes = watering/laundry.',
-    ]
-  },
-  general:{
-    keywords:['help','water','tips','advice','recommendation','suggest','how'],
-    responses:[
-      '💧 <strong>Water is Precious:</strong> Reducing by just 10% saves thousands of liters yearly. Every small action counts!',
-      '🌍 <strong>Environmental Impact:</strong> Saving 10L/day = 3,650L/year = 2 weeks of water for someone in a water-scarce region.',
-      '💰 <strong>Save Money Too:</strong> Lower water usage = lower bills. Fixing one leak can save up to 240L/day = ~$35/month!',
-      '🔧 <strong>Common Issues:</strong> Leaking toilets (40%), dripping faucets (10%), and inefficient appliances (30%) cause most waste.',
-    ]
-  }
-};
+// ===== ADVANCED AI INTEGRATION =====
+// Uses HuggingFace Inference API for better responses
+const HF_API_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.1";
 
-// Enhanced AI response selector
-function getAIResponse(userMessage){
-  const msg=userMessage.toLowerCase();
-  
-  // Score each knowledge category based on keyword matches
-  let bestCategory='general';
-  let bestScore=0;
-  
-  for(let category in AI_KNOWLEDGE){
-    const keywords=AI_KNOWLEDGE[category].keywords;
-    let score=0;
+// System prompt for water conservation AI
+const SYSTEM_PROMPT = `You are DropSense, an expert water conservation AI assistant. You help users:
+- Detect and fix water leaks
+- Reduce water usage with practical tips
+- Understand their water consumption patterns
+- Get personalized recommendations based on their usage data
+
+Current usage stats:
+- Current: {{CURRENT}}L
+- Average: {{AVERAGE}}L  
+- Peak: {{PEAK}}L
+
+Be helpful, concise (under 150 words), and provide actionable advice. Use emojis sparingly.`;
+
+// Get AI response from HuggingFace
+async function getAIResponseFromAPI(userMessage) {
+  try {
+    const a = avg(readings);
+    const cur = readings[readings.length - 1];
+    const max = Math.max(...readings);
     
-    keywords.forEach(keyword=>{
-      if(msg.includes(keyword)) score++;
+    const systemWithData = SYSTEM_PROMPT
+      .replace('{{CURRENT}}', Math.round(cur))
+      .replace('{{AVERAGE}}', Math.round(a))
+      .replace('{{PEAK}}', Math.round(max));
+    
+    const prompt = `${systemWithData}\n\nUser: ${userMessage}\nAssistant:`;
+    
+    console.log('📡 Calling AI API...');
+    
+    const response = await fetch(HF_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        inputs: prompt,
+        parameters: {
+          max_new_tokens: 200,
+          temperature: 0.7,
+          top_p: 0.9
+        }
+      })
     });
     
-    if(score>bestScore){
-      bestScore=score;
-      bestCategory=category;
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.status}`);
     }
+    
+    const data = await response.json();
+    
+    if (data[0] && data[0].generated_text) {
+      // Extract only the assistant response (remove the prompt)
+      const fullText = data[0].generated_text;
+      const assistantStart = fullText.lastIndexOf('Assistant:') + 10;
+      let reply = fullText.substring(assistantStart).trim();
+      
+      // Clean up formatting
+      reply = reply.replace(/^[^\w\d]/g, '').trim();
+      
+      return reply || '💭 Let me think about that...';
+    }
+    
+    return '❓ I had trouble processing that. Please try again.';
+    
+  } catch (error) {
+    console.error('❌ AI API Error:', error);
+    
+    // Fallback to rule-based system if API fails
+    return getFallbackAIResponse(userMessage);
   }
-  
-  const responses=AI_KNOWLEDGE[bestCategory].responses;
-  let reply=responses[Math.floor(Math.random()*responses.length)];
-  
-  // Add contextual data from user's actual usage
-  const a=avg(readings);
-  const cur=readings[readings.length-1];
-  const max=Math.max(...readings);
-  
-  // Insert usage context into certain responses
-  if(bestCategory==='monitoring' || bestCategory==='general'){
-    reply=reply.replace('{{CURRENT}}',Math.round(cur));
-    reply=reply.replace('{{AVERAGE}}',Math.round(a));
-    reply=reply.replace('{{PEAK}}',Math.round(max));
-  }
-  
-  return reply;
 }
 
-// Chat function with smart AI
+// Fallback rule-based response if API is down
+function getFallbackAIResponse(userMessage) {
+  const msg = userMessage.toLowerCase();
+  
+  if (msg.includes('leak') || msg.includes('drip')) {
+    return '💧 <strong>Leak Detection:</strong> Listen for hissing sounds. Check your water meter overnight — if it changes with no usage, there\'s a leak. A slow drip wastes 20L/day! Common leaks: faucets, toilets, underground pipes.';
+  }
+  if (msg.includes('save') || msg.includes('reduce') || msg.includes('conserve')) {
+    return '💡 <strong>Quick Wins:</strong> Take 5-min showers (saves 40L), fix dripping taps (saves 20L/day), turn off taps while soaping, use full dishwasher loads. These simple changes make a big difference!';
+  }
+  if (msg.includes('bathroom') || msg.includes('shower')) {
+    return '🚿 <strong>Bathroom Tips:</strong> Install low-flow showerheads (save 40%). Fix running toilets immediately (can waste 200L/day!). Showers use less water than baths.';
+  }
+  if (msg.includes('garden') || msg.includes('plant')) {
+    return '🌱 <strong>Garden Tips:</strong> Water early morning to reduce evaporation. Use drip irrigation instead of sprinklers. Collect rainwater. Mulch plants to retain moisture.';
+  }
+  
+  return '📊 I\'m here to help with water conservation. Ask me about leaks, saving water, bathroom efficiency, or your usage patterns!';
+}
+
+// Chat function with real AI
 function sendChat(){
   const inp=document.getElementById('chat-input');
   const msg=inp.value.trim();
@@ -1319,12 +1307,11 @@ function sendChat(){
   // Show typing indicator
   showTypingIndicator();
   
-  // Get AI response
-  setTimeout(()=>{
+  // Get AI response from API
+  getAIResponseFromAPI(msg).then(reply=>{
     removePreviousTyping();
-    const reply=getAIResponse(msg);
     addChatMessage(reply, 'ai');
-  },1200);
+  });
 }
 
 // Quick ask buttons
