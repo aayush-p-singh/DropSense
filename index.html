@@ -1191,6 +1191,40 @@ function submitReport(){
   document.getElementById('r-area').value='';
   document.getElementById('r-desc').value='';
 }
+   // 1. Your unique CSV link from Step 1
+const sheetUrl = 'https://script.googleusercontent.com/macros/echo?user_content_key=AWDtjMUN5nQu8x0YvSX6k3_5_XcSEhdkQEtUsQCDnHmvIFM1_O1zIugD3VKSlrHxB3s6SUobULARznSKllABbaipa5oLcz8__53Gs0enLhjnIYJAF9vuwyiM_KEoOw5SsK95juYfS4A5WrDp5kgqVOSSoNda8d7XSYgqikPcsh4i0qCUyaVh9uT1eWYY8BrI5zaIsI8OvaI34IK_RovWlKl0HQdUAHoZi6NKM5afmgwpsieUv-eyXNSwNz3NvD6tj-TMeBq_OHYJlTJ0Esao3vpxLWxW7CEdDA&lib=MsqvfUtVLlKtiJQiu-NGzjGnClX_RwzOl'; 
+
+async function syncWithSheet() {
+    try {
+        const response = await fetch(sheetUrl);
+        const csvText = await response.text();
+        
+        // Convert CSV text into an array of rows
+        const rows = csvText.split('\n').map(row => row.split(','));
+        
+        // 2. Identify your data (Assuming: Col A = Timestamp, Col B = Flow Reading)
+        // We take the very last row for the "Current Reading"
+        const lastRow = rows[rows.length - 1];
+        const latestReading = parseFloat(lastRow[1]); // Change [1] to the correct column index
+
+        if (!isNaN(latestReading)) {
+            // 3. Update the UI Elements from your Dashboard [cite: 17, 22]
+            document.getElementById('current-reading-value').innerText = latestReading + " L";
+            
+            // 4. Trigger the Leak Detection Logic [cite: 27, 28]
+            // If the sheet value is 1.5x the average, the status changes 
+            checkLeakStatus(latestReading);
+            
+            // 5. Push data to your Usage Trend Chart [cite: 45]
+            updateChart(latestReading);
+        }
+    } catch (error) {
+        console.error("Sheet sync failed:", error);
+    }
+}
+
+// 6. Replace your old "simulation" interval with this sync
+// This runs every 5 seconds to keep the dashboard "Live" [cite: 16, 25]
 </script>
 </body>
 </html>
