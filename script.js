@@ -211,8 +211,9 @@ function submitReport(){
   document.getElementById("r-desc").value = "";
 }
 
-fetch("https://opensheet.elk.sh/1pc-cOkvMEf3VBZ0LFtf4MkeI1vR5qXbPsxytVX5Ja_I/Sheet1")
+fetch("https://opensheet.vercel.app/1pc-cOkvMEf3VBZ0LFtf4Mkel1vR5qXbPsxytVX5Ja_I/Sheet1")
   .then(res => res.json())
   .then(data => {
-    console.log(data);
+    let latest = data[data.length - 1];
+    document.getElementById("flowValue").innerText = latest.Flow;
   });
