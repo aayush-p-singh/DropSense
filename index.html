@@ -737,6 +737,7 @@ const DAILY_LIMIT = 150;
 const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbz8F04Jnpz3CtEPhod6f3gvn_lmuAouB-j3Z3-wZDR59dmhH-53eZ_O43NyU1e8Kz64Rw/exec";
 const UPDATE_INTERVAL = 5000; // 5 seconds
 let isAutoSync = true;
+let syncAttempts = 0;
 
 // ===== SCROLL & NAVIGATION =====
 function scrollToApp(){
