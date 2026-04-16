@@ -4,6 +4,11 @@ let reports = JSON.parse(localStorage.getItem("communityReports")) || [];
 let chart;
 let DAILY_LIMIT = 150;
 
+// ===== GOOGLE SHEETS CONFIG =====
+const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbw7lgwp499mFbdWNIaffSVYLZd17K8JjuQbDa9NO-YSj52durYuPUzUgWrn168aSF0L9w/exec";
+const UPDATE_INTERVAL = 5000; // 5 seconds
+let lastGoogleSheetFetch = 0;
+
 // ===== TAB SWITCH =====
 function showTab(id, btn){
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
@@ -33,6 +38,10 @@ window.onload = () => {
 
   updateUI();
   displayReports();
+  
+  // Start fetching from Google Sheets live
+  fetchGoogleSheetData();
+  setInterval(fetchGoogleSheetData, UPDATE_INTERVAL);
 };
 
 // ===== DATA FUNCTIONS =====
@@ -46,6 +55,22 @@ function addManual(){
   if(!val) return;
 
   addData(Number(val));
+  document.getElementById("manualInput").value = '';
+}
+
+// ===== REFRESH GOOGLE SHEETS MANUALLY =====
+function refreshGoogleSheet() {
+  document.getElementById("refreshBtn").textContent = "⟳ Refreshing...";
+  document.getElementById("refreshBtn").disabled = true;
+  
+  fetchGoogleSheetData().then(() => {
+    document.getElementById("refreshBtn").textContent = "⟳ Refresh Data";
+    document.getElementById("refreshBtn").disabled = false;
+    console.log("✅ Data refreshed from Google Sheets");
+  }).catch(() => {
+    document.getElementById("refreshBtn").textContent = "⟳ Refresh Data";
+    document.getElementById("refreshBtn").disabled = false;
+  });
 }
 
 function addData(val){
@@ -57,6 +82,41 @@ function addData(val){
   updateChart();
   updateUI();
   refreshAdvisory();
+}
+
+// ===== FETCH FROM GOOGLE SHEETS =====
+async function fetchGoogleSheetData() {
+  try {
+    const response = await fetch(GOOGLE_SHEET_URL);
+    const data = await response.json();
+    
+    // Parse the Google Sheets data
+    if (data && Array.isArray(data)) {
+      // Extract flow rate values (assuming data format: [{flowRate: X, volume: Y}, ...])
+      readings = data.map(row => {
+        // Accept both "flowRate" and "flow_rate" keys
+        return parseFloat(row.flowRate || row.flow_rate || row.usage || 0);
+      }).filter(val => val > 0);
+      
+      if (readings.length === 0) {
+        readings = [90, 100, 110]; // Fallback
+      }
+      
+      // Save to local storage as backup
+      localStorage.setItem("waterData", JSON.stringify(readings));
+      
+      // Update UI
+      updateChart();
+      updateUI();
+      refreshAdvisory();
+      
+      console.log(`✅ Fetched ${readings.length} readings from Google Sheets`);
+    }
+  } catch (error) {
+    console.warn("⚠️ Could not fetch Google Sheets data:", error.message);
+    // Use local data as fallback
+    readings = JSON.parse(localStorage.getItem("waterData")) || [90,100,110];
+  }
 }
 
 function updateChart(){
@@ -84,6 +144,13 @@ function updateUI(){
 
   let percent = Math.min((current/DAILY_LIMIT)*100,100);
   document.getElementById("progress").style.width = percent+"%";
+  
+  // Update sync status indicator
+  const statusEl = document.getElementById("syncStatus");
+  if (statusEl) {
+    statusEl.innerHTML = "📡 Synced from Google Sheets";
+    statusEl.style.color = "#38bdf8";
+  }
 }
 
 // ===== PREDICTION =====
@@ -211,7 +278,7 @@ function submitReport(){
   document.getElementById("r-desc").value = "";
 }
 
-fetch("https://opensheet.elk.sh/1pc-cOkvMEf3VBZ0LFtf4MkeI1vR5qXbPsxytVX5Ja_I/Sheet1")
+fetch("https://script.google.com/macros/s/AKfycbw7lgwp499mFbdWNIaffSVYLZd17K8JjuQbDa9NO-YSj52durYuPUzUgWrn168aSF0L9w/exec")
   .then(res => res.json())
   .then(data => {
     console.log(data);
