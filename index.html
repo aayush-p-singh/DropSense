@@ -351,6 +351,8 @@ body{
   position:relative;
 }
 @keyframes slideUp{from{opacity:0;transform:translateY(32px)}to{opacity:1;transform:translateY(0)}}
+
+@keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}}
 .modal-close{
   position:absolute;top:14px;right:14px;
   background:var(--surface);border:none;color:var(--text-muted);
@@ -636,6 +638,7 @@ body{
         <div class="panel-title">Usage summary</div>
         <div id="adv-summary" style="font-size:26px;font-weight:500;letter-spacing:-0.03em;margin-bottom:6px">—</div>
         <div id="adv-note" style="font-size:13px;color:var(--text-muted)">Average across all readings</div>
+        <div id="adv-variance"></div>
       </div>
       <div class="panel">
         <div class="panel-title">Conservation score</div>
@@ -647,11 +650,22 @@ body{
     </div>
 
     <div class="panel">
-      <div class="panel-title">Ask the water assistant</div>
-      <div class="chat-msgs" id="chat-msgs"></div>
+      <div class="panel-title">💬 Chat with DropSense AI</div>
+      <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Ask questions about water conservation, detect leaks, or get personalized tips</div>
+      
+      <div class="chat-msgs" id="chat-msgs" style="background: rgba(255,255,255,0.02); border-radius: 8px; padding: 12px; margin-bottom: 12px; min-height: 200px;"></div>
+      
+      <!-- Quick Suggestion Buttons -->
+      <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
+        <button onclick="quickAsk('How can I reduce water usage?')" style="padding: 6px 10px; background: rgba(56,217,245,0.2); border: 1px solid #38d9f5; color: #38d9f5; border-radius: 6px; font-size: 11px; cursor: pointer; transition: all 0.2s;">💡 Save Water</button>
+        <button onclick="quickAsk('I think I have a leak')" style="padding: 6px 10px; background: rgba(245,91,91,0.2); border: 1px solid #f55b5b; color: #f55b5b; border-radius: 6px; font-size: 11px; cursor: pointer; transition: all 0.2s;">🔧 Leak Detection</button>
+        <button onclick="quickAsk('Tips for bathroom')" style="padding: 6px 10px; background: rgba(61,245,168,0.2); border: 1px solid #3df5a8; color: #3df5a8; border-radius: 6px; font-size: 11px; cursor: pointer; transition: all 0.2s;">🚽 Bathroom</button>
+        <button onclick="quickAsk('Garden watering tips')" style="padding: 6px 10px; background: rgba(245,194,61,0.2); border: 1px solid #f5c23d; color: #f5c23d; border-radius: 6px; font-size: 11px; cursor: pointer; transition: all 0.2s;">🌱 Garden</button>
+      </div>
+      
       <div class="chat-form">
-        <input class="ctrl-input" id="chat-input" placeholder="Ask about water conservation…" onkeydown="if(event.key==='Enter')sendChat()">
-        <button class="chat-send" onclick="sendChat()">Send</button>
+        <input class="ctrl-input" id="chat-input" placeholder="Ask anything about water… (or click buttons above)" onkeydown="if(event.key==='Enter')sendChat()" autocomplete="off">
+        <button class="chat-send" onclick="sendChat()" style="min-width: 60px;">Send</button>
       </div>
     </div>
   </div>
@@ -775,7 +789,22 @@ function showTab(id, btn){
     btn.classList.add('active');
   }
   
-  if(id==='advisory') refreshAdvisory();
+  if(id==='advisory') {
+    refreshAdvisory();
+    initializeChatIfEmpty();
+  }
+}
+
+// Initialize chat with welcome message
+function initializeChatIfEmpty(){
+  const box=document.getElementById('chat-msgs');
+  if(!box.children.length){
+    const greeting=document.createElement('div');
+    greeting.className='chat-bubble bubble-ai';
+    greeting.innerHTML=`<div class="sender" style="font-weight: 600; margin-bottom: 4px; color: #38d9f5;">💧 DropSense AI</div><div style="line-height: 1.5;">Hi! 👋 I'm your water conservation assistant. I can help you:<br><br>• <strong>Detect leaks</strong> and fix them<br>• <strong>Save water</strong> with practical tips<br>• <strong>Optimize</strong> your water usage<br>• <strong>Monitor</strong> your usage patterns<br><br>What would you like to know?</div>`;
+    box.appendChild(greeting);
+    box.scrollTop=box.scrollHeight;
+  }
 }
 
 // ===== CHART INIT =====
@@ -1115,44 +1144,245 @@ function closePredictionModal(){
 // ===== ADVISORY =====
 function refreshAdvisory(){
   const a=avg(readings);
+  const cur=readings[readings.length-1];
+  const max=Math.max(...readings);
+  const min=Math.min(...readings);
+  const variance=max-min;
+  
   document.getElementById('adv-summary').textContent=Math.round(a)+' L';
-  document.getElementById('adv-note').textContent=`Average across ${readings.length} reading${readings.length>1?'s':''}`;
+  document.getElementById('adv-note').textContent=`Average across ${readings.length} reading${readings.length>1?'s':''}. Current: ${Math.round(cur)}L | Peak: ${Math.round(max)}L`;
+  
   const sv=document.getElementById('adv-score-val');
   const ss=document.getElementById('adv-score-sub');
-  if(a<100){sv.textContent='Excellent';sv.style.color='var(--ok)';ss.textContent='Well below the 150L/day limit'}
-  else if(a<130){sv.textContent='Good';sv.style.color='var(--accent)';ss.textContent='Under daily recommended limit'}
-  else if(a<160){sv.textContent='Fair';sv.style.color='var(--warn)';ss.textContent='Close to the daily limit'}
-  else{sv.textContent='High';sv.style.color='var(--danger)';ss.textContent='Above 150L/day — consider reducing'}
+  
+  let score='',color='',subtext='';
+  let recommendation='';
+  
+  if(a<80){
+    score='⭐ Excellent';color='var(--ok)';
+    subtext='Outstanding water conservation!';
+    recommendation='👍 Keep up your excellent habits!';
+  }
+  else if(a<110){
+    score='🟢 Good';color='var(--accent)';
+    subtext='Well below the 150L/day limit';
+    recommendation='💡 Room for slight improvement in peak hours.';
+  }
+  else if(a<140){
+    score='🟡 Fair';color='var(--warn)';
+    subtext='Close to the daily recommended limit';
+    recommendation='⚠️ Watch for suspicious spikes. Install flow meters.';
+  }
+  else{
+    score='🔴 High';color='var(--danger)';
+    subtext='Above 150L/day — needs attention';
+    recommendation='🚨 Check for leaks. Peak usage is '+Math.round(max)+'L!';
+  }
+  
+  sv.textContent=score;
+  sv.style.color=color;
+  ss.textContent=subtext;
+  
+  // Add variance warning
+  const varEl=document.getElementById('adv-variance');
+  if(varEl){
+    if(variance>50){
+      varEl.innerHTML=`<br><span style="color:var(--warn)">⚠️ Usage variance is ${Math.round(variance)}L (High fluctuation - check for leaks)</span>`;
+    } else {
+      varEl.innerHTML=`<br><span style="color:var(--ok)">✓ Usage patterns are stable (variance: ${Math.round(variance)}L)</span>`;
+    }
+  }
+  
+  // Store recommendation for AI to reference
+  window.currentRecommendation=recommendation;
 }
 
-// ===== CHAT =====
-const AI_REPLIES=[
-  'Fix leaky faucets first — a dripping tap can waste up to 20L daily.',
-  'Turn off the tap while brushing teeth to save up to 8L per minute.',
-  'Consider installing low-flow showerheads — they can cut shower usage by 40%.',
-  'Check your water meter overnight to detect hidden leaks in pipes.',
-  'Collect and reuse greywater from sinks and showers for garden irrigation.',
-  'Using a dishwasher on full load is actually more water-efficient than hand-washing.',
-];
+// ===== AI CHAT SYSTEM =====
+// Knowledge base with context-aware responses
+const AI_KNOWLEDGE={
+  leak:{
+    keywords:['leak','drip','drop','waste','lose','pipe','broken','damaged','running'],
+    responses:[
+      '🔧 <strong>Leak Detection:</strong> Listen for hissing sounds. A slow drip wastes 20L/day! Check your water meter overnight — if it changes with no usage, there\'s a leak.',
+      '💧 <strong>Common Leaks:</strong> Check faucets (most common), toilet running (can waste 200L/day!), and underground pipes. Use food coloring in toilet to detect silent leaks.',
+      '🚨 <strong>Emergency Action:</strong> If you suspect a major leak, turn off the main water valve and call a plumber. Wasting water also wastes money!',
+    ]
+  },
+  save:{
+    keywords:['save','reduce','conserve','lower','decrease','cut','usage','less','efficient'],
+    responses:[
+      '💡 <strong>Quick Wins:</strong> Fix dripping taps (20L/day), take 5-min showers (40L) instead of baths (100L+), and turn off taps while soaping. Small changes = big impact!',
+      '🚿 <strong>Shower Smart:</strong> Install a low-flow showerhead to cut usage by 40%. Take military showers: wet, soap (tap off), rinse.',
+      '🍽️ <strong>Kitchen Tips:</strong> A full dishwasher uses 27L vs. 100+ L hand-washing. Fill the sink instead of running water continuously.',
+      '🌿 <strong>Outdoor Watering:</strong> Water plants early morning/evening (less evaporation). Use drip irrigation, not sprinklers. Collect rainwater.',
+    ]
+  },
+  bathroom:{
+    keywords:['bathroom','shower','bath','toilet','tap','sink','flush','wash'],
+    responses:[
+      '🚽 <strong>Toilet Efficiency:</strong> Most water is used here! Dual-flush toilets save 50%. Don\'t use as trash. Fix running toilets immediately (can waste 200L/day).',
+      '🚿 <strong>Shower vs. Bath:</strong> 5-min shower (25-50L) beats a bath (100-150L). Use a shower timer to stay under 5 minutes.',
+      '🩸 <strong>Handwashing:</strong> Fill a basin (5L) instead of running water (8L/min). You\'ll save 40L per wash session.',
+    ]
+  },
+  laundry:{
+    keywords:['laundry','washing','clothes','machine','wash','load'],
+    responses:[
+      '👕 <strong>Washing Machine:</strong> Use full loads only (125L vs. 70L per load). Modern machines are 40% more efficient than older ones.',
+      '💧 <strong>Water-Saving Tips:</strong> Choose shorter cycles for lightly soiled clothes. Some machines have "eco" modes that save 30% water.',
+    ]
+  },
+  garden:{
+    keywords:['garden','plant','water','green','lawn','outdoor','yard','tree'],
+    responses:[
+      '🌱 <strong>Smart Gardening:</strong> Water early morning (before 10am) to reduce evaporation. Deep watering 2x/week beats daily sprinkles.',
+      '💧 <strong>Drip Irrigation:</strong> Uses 50% less water than sprinklers. Mulch plants to retain soil moisture. Choose drought-resistant plants.',
+      '🌧️ <strong>Rainwater Harvesting:</strong> A 50L tank can save 2,000L/year. Install gutters to collect roof runoff.',
+    ]
+  },
+  cooking:{
+    keywords:['cooking','kitchen','food','cook','dish','clean','pan','pot'],
+    responses:[
+      '🍳 <strong>Cooking Smart:</strong> Fill pots efficiently. Boil water in a kettle (faster, less waste). Don\'t rinse pasta after cooking.',
+      '🍽️ <strong>Dishwashing:</strong> Full dishwasher (27L) beats hand-washing (100L+). Scrape, don\'t rinse. Air-dry when possible.',
+    ]
+  },
+  monitoring:{
+    keywords:['monitor','track','meter','meter','usage','reading','data','alert'],
+    responses:[
+      '📊 <strong>Usage Tracking:</strong> Your current usage is '+Math.round(readings[readings.length-1])+'L. Average is '+Math.round(avg(readings))+'L. Set alerts for spikes.',
+      '🔔 <strong>Leak Alert System:</strong> If usage suddenly jumps 50%+ without explanation, it\'s likely a leak. Investigate immediately!',
+      '📈 <strong>Trend Analysis:</strong> Compare daily/weekly usage. Spikes in morning = showers. Afternoon spikes = watering/laundry.',
+    ]
+  },
+  general:{
+    keywords:['help','water','tips','advice','recommendation','suggest','how'],
+    responses:[
+      '💧 <strong>Water is Precious:</strong> Reducing by just 10% saves thousands of liters yearly. Every small action counts!',
+      '🌍 <strong>Environmental Impact:</strong> Saving 10L/day = 3,650L/year = 2 weeks of water for someone in a water-scarce region.',
+      '💰 <strong>Save Money Too:</strong> Lower water usage = lower bills. Fixing one leak can save up to 240L/day = ~$35/month!',
+      '🔧 <strong>Common Issues:</strong> Leaking toilets (40%), dripping faucets (10%), and inefficient appliances (30%) cause most waste.',
+    ]
+  }
+};
+
+// Enhanced AI response selector
+function getAIResponse(userMessage){
+  const msg=userMessage.toLowerCase();
+  
+  // Score each knowledge category based on keyword matches
+  let bestCategory='general';
+  let bestScore=0;
+  
+  for(let category in AI_KNOWLEDGE){
+    const keywords=AI_KNOWLEDGE[category].keywords;
+    let score=0;
+    
+    keywords.forEach(keyword=>{
+      if(msg.includes(keyword)) score++;
+    });
+    
+    if(score>bestScore){
+      bestScore=score;
+      bestCategory=category;
+    }
+  }
+  
+  const responses=AI_KNOWLEDGE[bestCategory].responses;
+  let reply=responses[Math.floor(Math.random()*responses.length)];
+  
+  // Add contextual data from user's actual usage
+  const a=avg(readings);
+  const cur=readings[readings.length-1];
+  const max=Math.max(...readings);
+  
+  // Insert usage context into certain responses
+  if(bestCategory==='monitoring' || bestCategory==='general'){
+    reply=reply.replace('{{CURRENT}}',Math.round(cur));
+    reply=reply.replace('{{AVERAGE}}',Math.round(a));
+    reply=reply.replace('{{PEAK}}',Math.round(max));
+  }
+  
+  return reply;
+}
+
+// Chat function with smart AI
 function sendChat(){
   const inp=document.getElementById('chat-input');
   const msg=inp.value.trim();
   if(!msg)return;
-  const box=document.getElementById('chat-msgs');
-  const ub=document.createElement('div');
-  ub.className='chat-bubble bubble-user';ub.textContent=msg;
-  box.appendChild(ub);
+  
+  addChatMessage(msg, 'user');
   inp.value='';
-  const thinking=document.createElement('div');
-  thinking.className='chat-bubble bubble-ai';
-  thinking.innerHTML='<div class="sender">DropSense AI</div>Thinking…';
-  box.appendChild(thinking);
-  box.scrollTop=box.scrollHeight;
+  inp.focus();
+  
+  // Show typing indicator
+  showTypingIndicator();
+  
+  // Get AI response
   setTimeout(()=>{
-    const reply=AI_REPLIES[Math.floor(Math.random()*AI_REPLIES.length)];
-    thinking.innerHTML=`<div class="sender">DropSense AI</div>${reply}`;
-    box.scrollTop=box.scrollHeight;
-  },900);
+    removePreviousTyping();
+    const reply=getAIResponse(msg);
+    addChatMessage(reply, 'ai');
+  },1200);
+}
+
+// Quick ask buttons
+function quickAsk(question){
+  const inp=document.getElementById('chat-input');
+  inp.value=question;
+  inp.focus();
+  sendChat();
+}
+
+// Add message to chat box
+function addChatMessage(text, sender){
+  const box=document.getElementById('chat-msgs');
+  const bubble=document.createElement('div');
+  bubble.className=`chat-bubble bubble-${sender}`;
+  
+  if(sender==='ai'){
+    bubble.innerHTML=`<div class="sender" style="font-weight: 600; margin-bottom: 4px; color: #38d9f5;">💧 DropSense AI</div><div style="line-height: 1.5;">${text}</div>`;
+    
+    // Add follow-up suggestions after AI response
+    setTimeout(()=>{
+      if(box.children.length>0){
+        const lastChild=box.lastChild;
+        if(lastChild.className.includes('bubble-ai')){
+          const suggestions=document.createElement('div');
+          suggestions.style.cssText='display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; margin-bottom: 12px; padding: 0 12px;';
+          suggestions.innerHTML=`
+            <button onclick="quickAsk('How can I reduce my usage?')" style="padding: 4px 8px; background: rgba(56,217,245,0.15); border: 1px solid rgba(56,217,245,0.3); color: #38d9f5; border-radius: 4px; font-size: 11px; cursor: pointer; transition: all 0.2s;">Ask more</button>
+            <button onclick="document.getElementById('chat-input').focus()" style="padding: 4px 8px; background: rgba(61,245,168,0.15); border: 1px solid rgba(61,245,168,0.3); color: #3df5a8; border-radius: 4px; font-size: 11px; cursor: pointer; transition: all 0.2s;">Ask custom question</button>
+          `;
+          box.appendChild(suggestions);
+          box.scrollTop=box.scrollHeight;
+        }
+      }
+    }, 100);
+  }else{
+    bubble.innerHTML=`<div class="sender" style="font-weight: 600; margin-bottom: 4px; color: #3df5a8;">You</div><div>${text}</div>`;
+  }
+  
+  box.appendChild(bubble);
+  box.scrollTop=box.scrollHeight;
+}
+
+// Show typing indicator
+function showTypingIndicator(){
+  const box=document.getElementById('chat-msgs');
+  const indicator=document.createElement('div');
+  indicator.className='chat-bubble bubble-ai';
+  indicator.id='typing-indicator';
+  indicator.innerHTML=`<div class="sender" style="font-weight: 600; margin-bottom: 4px; color: #38d9f5;">💧 DropSense AI</div><div style="display: flex; gap: 4px; align-items: center;"><span style="display: inline-block; width: 8px; height: 8px; background: #38d9f5; border-radius: 50%; animation: bounce 1.4s infinite;"></span><span style="display: inline-block; width: 8px; height: 8px; background: #38d9f5; border-radius: 50%; animation: bounce 1.4s 0.2s infinite;"></span><span style="display: inline-block; width: 8px; height: 8px; background: #38d9f5; border-radius: 50%; animation: bounce 1.4s 0.4s infinite;"></span></div>`;
+  box.appendChild(indicator);
+  box.scrollTop=box.scrollHeight;
+}
+
+// Remove typing indicator
+function removePreviousTyping(){
+  const indicator=document.getElementById('typing-indicator');
+  if(indicator) indicator.remove();
 }
 
 // ===== COMMUNITY =====
