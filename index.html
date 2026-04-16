@@ -823,30 +823,16 @@ async function fetchGoogleSheetData() {
   try {
     console.log(`📡 Attempt #${syncAttempts}: Fetching from Google Sheets...`);
     
-    // Try with no-cors first (returns opaque response)
+    // Simple fetch without AbortController to avoid timeout issues
     const response = await fetch(GOOGLE_SHEET_URL, {
-      method: 'GET',
-      mode: 'no-cors'  // Changed to no-cors to bypass CORS restrictions
+      method: 'GET'
     });
     
-    // For no-cors, we can't read the response, so try JSON fetch with timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
-    
-    const jsonResponse = await fetch(GOOGLE_SHEET_URL, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json'
-      },
-      signal: controller.signal
-    });
-    clearTimeout(timeoutId);
-    
-    if (!jsonResponse.ok) {
-      throw new Error(`HTTP ${jsonResponse.status}: ${jsonResponse.statusText}`);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
     
-    const data = await jsonResponse.json();
+    const data = await response.json();
     console.log('📦 Data received:', data);
     
     // Check if it's the correct response format
